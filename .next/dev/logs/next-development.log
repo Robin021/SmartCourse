@@ -6,3 +6,7 @@
 [00:00:17.898] Server  LOG     URI: "mongodb://***@localhost:27017/smartcourse?authSource=admin&directConnection=true"
 [00:00:17.978] Server  LOG     User found. Verifying password...
 [00:01:02.208] Server  LOG     User found. Verifying password...
+[00:05:19.634] Server  ERROR   Error fetching projects: TypeError: fetch failed
+[00:05:19.639] Server  ERROR   Error fetching projects: TypeError: fetch failed
+[00:06:03.107] Server  ERROR   Error fetching projects: TypeError: fetch failed
+[00:06:03.111] Server  ERROR   Error fetching projects: TypeError: fetch failed
