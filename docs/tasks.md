@@ -1,6 +1,6 @@
 # 项目任务记录
 
-> 最后更新：2025-12-11（完成导出模板系统）
+> 最后更新：2025-12-12（修复 GHCR 构建找不到 Dockerfile）
 
 ## 未完成任务
 
@@ -203,6 +203,14 @@
 ---
 
 ## 已完成任务
+
+### ✅ 修复：GH Actions buildx 找不到 Dockerfile
+- 修复时间：2025-12-12
+- 问题：GitHub Actions 构建镜像时报错 `failed to read dockerfile: open Dockerfile: no such file or directory`
+- 原因：`Dockerfile`（以及 `.dockerignore` 等）在本地存在但未加入 git，runner checkout 后缺文件
+- 修复：
+  - 将 `Dockerfile` / `Dockerfile.dev` / `.dockerignore` 等 Docker 相关文件纳入版本控制
+  - `Dockerfile` 构建阶段显式设置 `NODE_ENV=production`，确保 Next.js 生成 `.next/standalone`
 
 ### ✅ GitHub Actions 发布 GHCR
 - 实现时间：2025-12-11
