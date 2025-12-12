@@ -67,7 +67,7 @@ export const Q8_FORM_SCHEMA: Q8FormSchema = {
                     type: "select",
                     label: "框架选择",
                     required: true,
-                    options: FRAMEWORK_OPTIONS,
+                    options: [...FRAMEWORK_OPTIONS],
                 },
                 {
                     key: "board_names",
@@ -108,7 +108,7 @@ export const Q8_FORM_SCHEMA: Q8FormSchema = {
                     type: "select",
                     label: "文档风格",
                     required: true,
-                    options: DOC_STYLE_OPTIONS,
+                    options: [...DOC_STYLE_OPTIONS],
                 },
                 {
                     key: "additional_notes",

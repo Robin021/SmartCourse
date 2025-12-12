@@ -20,7 +20,7 @@ function toResponse(bundle: {
 
 export async function GET(
     req: Request,
-    context: { params: { id: string } | Promise<{ id: string }> }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const params = await context.params;
@@ -28,11 +28,16 @@ export async function GET(
         const stagesParam = searchParams.get("stages");
         const format = (searchParams.get("format") as ExportFormat) || "text";
         const stages = stagesParam ? stagesParam.split(",").map((s) => s.trim()) : undefined;
+        const templateId = searchParams.get("templateId") || undefined;
+        const sectionsParam = searchParams.get("sections");
+        const selectedSections = sectionsParam ? sectionsParam.split(",").map((s) => s.trim()) : undefined;
 
         const bundle = await buildExportBundle({
             projectId: params.id,
             stages,
             format,
+            templateId,
+            selectedSections,
         });
 
         return toResponse(bundle);
@@ -47,17 +52,19 @@ export async function GET(
 
 export async function POST(
     req: Request,
-    context: { params: { id: string } | Promise<{ id: string }> }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const params = await context.params;
         const body = await req.json();
-        const { stages, format = "text" } = body || {};
+        const { stages, format = "text", templateId, selectedSections } = body || {};
 
         const bundle = await buildExportBundle({
             projectId: params.id,
             stages,
             format,
+            templateId,
+            selectedSections,
         });
 
         return toResponse(bundle);

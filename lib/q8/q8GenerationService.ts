@@ -20,6 +20,8 @@ export interface Q8GenerationRequest {
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
     user?: { id?: string; name?: string };
     useRag?: boolean;
+    stream?: boolean;
+    onToken?: (chunk: string) => void;
 }
 
 export interface Q8GenerationResult {
@@ -39,21 +41,40 @@ export class Q8GenerationService {
     }
 
     async generate(request: Q8GenerationRequest): Promise<Q8GenerationResult> {
-        const { projectId, formData: rawFormData, conversationHistory, user } = request;
+        const {
+            projectId,
+            formData: rawFormData,
+            conversationHistory,
+            user,
+            stream,
+            onToken,
+        } = request;
         const formData = normalizeQ8FormData(rawFormData);
 
         const previousContext = await stageService.getPreviousStagesContext(projectId, "Q8");
         const previousContextMap = this.toContextMap(previousContext);
 
         const generationInput = buildQ8GenerationInput(formData, previousContextMap);
-        const generationResult = await GenerationService.generate({
-            projectId,
-            stage: "Q8",
-            userInput: generationInput,
-            previousStagesContext: previousContextMap,
-            conversationHistory,
-            useRag: request.useRag ?? true,
-        });
+        const generationResult = stream
+            ? await GenerationService.generateStream(
+                  {
+                      projectId,
+                      stage: "Q8",
+                      userInput: generationInput,
+                      previousStagesContext: previousContextMap,
+                      conversationHistory,
+                      useRag: request.useRag ?? true,
+                  },
+                  { onToken }
+              )
+            : await GenerationService.generate({
+                  projectId,
+                  stage: "Q8",
+                  userInput: generationInput,
+                  previousStagesContext: previousContextMap,
+                  conversationHistory,
+                  useRag: request.useRag ?? true,
+              });
 
         const structureScore = computeStructureScore(formData, generationResult.ragResults.length);
         const keywords = extractQ8Keywords(generationResult.content, formData);

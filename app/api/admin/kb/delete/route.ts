@@ -2,17 +2,24 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import DocumentModel from "@/models/Document";
 import SystemConfig from "@/models/SystemConfig";
-import { deleteByDocumentId } from "@/lib/vectorDb";
+import { deleteByDocumentId, initVectorDb, getChunkCount } from "@/lib/vectorDb";
 import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import OSS from "ali-oss";
 import { unlink } from "fs/promises";
 import path from "path";
+
+interface DeleteResult {
+    storage: { success: boolean; error?: string };
+    vector: { success: boolean; chunksDeleted: number; error?: string };
+    mongo: { success: boolean; error?: string };
+}
 
 export async function DELETE(req: Request) {
     try {
         await connectDB();
         const { searchParams } = new URL(req.url);
         const documentId = searchParams.get("id");
+        const force = searchParams.get("force") === "true";
 
         if (!documentId) {
             return NextResponse.json(
@@ -24,11 +31,35 @@ export async function DELETE(req: Request) {
         // 1. Find document
         const doc = await DocumentModel.findById(documentId);
         if (!doc) {
+            // 如果 MongoDB 中没有但可能有孤儿 chunks
+            if (force) {
+                try {
+                    await initVectorDb();
+                    const chunksDeleted = await deleteByDocumentId(documentId);
+                    return NextResponse.json({
+                        success: true,
+                        message: `Force deleted ${chunksDeleted} orphan chunks`,
+                        partial: true,
+                    });
+                } catch (e: any) {
+                    return NextResponse.json(
+                        { error: `Force delete failed: ${e.message}` },
+                        { status: 500 }
+                    );
+                }
+            }
             return NextResponse.json(
                 { error: "Document not found" },
                 { status: 404 }
             );
         }
+
+        // 跟踪每个步骤的结果
+        const result: DeleteResult = {
+            storage: { success: false },
+            vector: { success: false, chunksDeleted: 0 },
+            mongo: { success: false },
+        };
 
         // 2. Get storage config
         const config = await SystemConfig.findOne().sort({ createdAt: -1 });
@@ -72,28 +103,55 @@ export async function DELETE(req: Request) {
                     })
                 );
             }
+            result.storage.success = true;
         } catch (storageError: any) {
-            console.warn("Storage delete warning:", storageError.message);
-            // Continue even if storage delete fails
+            result.storage.error = storageError.message;
+            console.warn("[Delete] Storage delete warning:", storageError.message);
+            // 继续执行，但记录错误
         }
 
         // 4. Delete from vector database
         try {
-            await deleteByDocumentId(documentId);
+            await initVectorDb();
+            const chunksDeleted = await deleteByDocumentId(documentId);
+            result.vector.success = true;
+            result.vector.chunksDeleted = chunksDeleted;
         } catch (vectorError: any) {
-            console.warn("Vector delete warning:", vectorError.message);
-            // Continue even if vector delete fails
+            result.vector.error = vectorError.message;
+            console.warn("[Delete] Vector delete warning:", vectorError.message);
+            // 继续执行，但记录错误
         }
 
-        // 5. Delete from MongoDB
-        await DocumentModel.findByIdAndDelete(documentId);
+        // 5. Delete from MongoDB (这是最关键的，必须成功)
+        try {
+            await DocumentModel.findByIdAndDelete(documentId);
+            result.mongo.success = true;
+        } catch (mongoError: any) {
+            result.mongo.error = mongoError.message;
+            console.error("[Delete] MongoDB delete error:", mongoError);
+            
+            // 如果 MongoDB 删除失败，这是严重错误
+            return NextResponse.json({
+                success: false,
+                error: "Failed to delete document from database",
+                partial: true,
+                details: result,
+            }, { status: 500 });
+        }
+
+        // 6. 检查是否有部分失败
+        const hasWarnings = !result.storage.success || !result.vector.success;
 
         return NextResponse.json({
             success: true,
-            message: "Document deleted successfully",
+            message: hasWarnings 
+                ? "Document deleted with warnings (some cleanup may have failed)"
+                : "Document deleted successfully",
+            partial: hasWarnings,
+            details: result,
         });
     } catch (error: any) {
-        console.error("Delete API error:", error);
+        console.error("[Delete] API error:", error);
         return NextResponse.json(
             { error: error.message || "Failed to delete document" },
             { status: 500 }

@@ -3,14 +3,16 @@
 import { Calendar, ChevronRight, MoreVertical } from "lucide-react";
 import Link from "next/link";
 
+export type ProjectSummary = {
+    _id: string;
+    name: string;
+    updatedAt: string;
+    current_stage: string;
+    status?: string;
+};
+
 interface ProjectCardProps {
-    project: {
-        _id: string;
-        name: string;
-        updatedAt: string;
-        current_stage: string;
-        status?: string;
-    };
+    project: ProjectSummary;
 }
 
 export default function ProjectCard({ project }: ProjectCardProps) {

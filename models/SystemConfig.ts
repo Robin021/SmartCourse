@@ -9,6 +9,7 @@ export interface ILLMProvider {
     api_key: string;
     model: string;
     is_active: boolean;
+    max_output_tokens?: number;
 }
 
 export interface IStorageProvider {
@@ -44,6 +45,7 @@ const SystemConfigSchema: Schema = new Schema(
                 api_key: { type: String, required: true },
                 model: { type: String, required: true },
                 is_active: { type: Boolean, default: false },
+                max_output_tokens: { type: Number, default: 2000 },
             },
         ],
         storage_providers: [

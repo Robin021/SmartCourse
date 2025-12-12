@@ -79,6 +79,53 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: true, message: `Rolled back to v${data.version}` });
         }
 
+        // Handle delete version
+        if (data.action === "deleteVersion") {
+            const result = await PromptVersion.deleteOne({
+                prompt_id: data.prompt_id,
+                version: data.version,
+            });
+            
+            if (result.deletedCount === 0) {
+                return NextResponse.json({ error: "Version not found" }, { status: 404 });
+            }
+            
+            return NextResponse.json({ success: true, message: `Version ${data.version} deleted` });
+        }
+
+        // Handle cleanup versions
+        if (data.action === "cleanupVersions") {
+            const keepCount = data.keepCount || 10;
+            
+            // Get all versions sorted by version number (descending)
+            const allVersions = await PromptVersion.find({ prompt_id: data.prompt_id })
+                .sort({ version: -1 });
+            
+            if (allVersions.length <= keepCount) {
+                return NextResponse.json({ success: true, deletedCount: 0, message: "No cleanup needed" });
+            }
+
+            // Keep the latest N versions
+            const toKeep = allVersions.slice(0, keepCount);
+            const toDelete = allVersions.slice(keepCount);
+            
+            if (toDelete.length === 0) {
+                return NextResponse.json({ success: true, deletedCount: 0, message: "No cleanup needed" });
+            }
+
+            const versionsToDelete = toDelete.map(v => v.version);
+            const result = await PromptVersion.deleteMany({
+                prompt_id: data.prompt_id,
+                version: { $in: versionsToDelete },
+            });
+            
+            return NextResponse.json({ 
+                success: true, 
+                deletedCount: result.deletedCount || 0,
+                message: `Cleaned up ${result.deletedCount || 0} old version(s), kept latest ${keepCount}` 
+            });
+        }
+
         // Extract variables from template
         const variableMatches = data.template?.match(/\{\{(\w+)\}\}/g) || [];
         const variables = variableMatches.map((v: string) => v.replace(/\{\{|\}\}/g, ""));

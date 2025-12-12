@@ -1,6 +1,6 @@
 # 项目任务记录
 
-> 最后更新：2025-12-12（修复 GHCR 构建找不到 Dockerfile）
+> 最后更新：2025-12-12（修复 Next.js 16 构建失败，GHCR 镜像可正常构建）
 
 ## 未完成任务
 
@@ -203,6 +203,16 @@
 ---
 
 ## 已完成任务
+
+### ✅ 修复：Next.js 16 / Docker 构建阶段 `npm run build` 失败
+- 修复时间：2025-12-12
+- 问题：GH Actions / Docker 构建时 `next build` 在 TypeScript 阶段失败（route params 类型、隐式 any、第三方库类型不匹配等）
+- 修复要点：
+  - **Route Handler params**：按 Next 16 类型要求，将 `context.params` 统一为 `Promise<...>` 并规范化 await 用法
+  - **严格 TS 报错清理**：补齐首页 projects 类型、修复编辑器/侧边栏的隐式 any 与可选链越界访问
+  - **导出模块类型修复**：对齐 pdfkit/pptxgenjs 的类型签名（标题加粗、addText 参数、write 输出 buffer 等）
+  - **表单配置 options 只读数组**：`as const` options 在 schema 使用处用展开拷贝，避免 readonly→mutable 的类型冲突
+  - **Q1 SWOT 类型适配**：维度分数与诊断分数存储类型对齐
 
 ### ✅ 修复：GH Actions buildx 找不到 Dockerfile
 - 修复时间：2025-12-12

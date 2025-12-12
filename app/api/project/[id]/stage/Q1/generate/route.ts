@@ -13,7 +13,7 @@ import { stageService } from "@/lib/stage";
 
 export async function POST(
     request: NextRequest,
-    context: { params: { id: string } | Promise<{ id: string }> }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const { id: projectId } = await context.params;
@@ -132,7 +132,7 @@ export async function POST(
  */
 export async function GET(
     request: NextRequest,
-    context: { params: { id: string } | Promise<{ id: string }> }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const { id: projectId } = await context.params;

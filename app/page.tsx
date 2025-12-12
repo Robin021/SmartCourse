@@ -1,20 +1,34 @@
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import ProjectCard from "@/components/dashboard/ProjectCard";
+import type { ProjectSummary } from "@/components/dashboard/ProjectCard";
 import { cookies } from "next/headers";
 
-async function fetchProjects() {
+const getBaseUrl = () =>
+    process.env.NEXT_PUBLIC_BASE_URL?.trim() ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
+const buildApiUrl = (path: string) => {
+    try {
+        return new URL(path, getBaseUrl()).toString();
+    } catch {
+        return `${getBaseUrl()}${path}`;
+    }
+};
+
+async function fetchProjects(): Promise<ProjectSummary[]> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
     try {
         const cookieStore = await cookies();
         const cookieHeader = cookieStore
             .getAll()
             .map((c) => `${c.name}=${c.value}`)
             .join("; ");
-        const base =
-            process.env.NEXT_PUBLIC_BASE_URL ||
-            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-        const res = await fetch(`${base}/api/projects`, {
+        const res = await fetch(buildApiUrl("/api/projects"), {
             cache: "no-store",
             headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+            signal: controller.signal,
         });
         if (!res.ok) {
             return [];
@@ -22,30 +36,49 @@ async function fetchProjects() {
         if (!res.headers.get("content-type")?.includes("application/json")) {
             return [];
         }
-        const data = await res.json().catch(() => ({ projects: [] }));
-        return (data.projects || []).map((p: any) => ({
-            ...p,
-            _id: p._id.toString(),
-        }));
+        const data = await res.json().catch(() => ({ projects: [] as unknown[] }));
+        const raw = Array.isArray((data as any).projects) ? (data as any).projects : [];
+
+        return raw.map((p: any): ProjectSummary => {
+            const updated =
+                typeof p?.updatedAt === "string"
+                    ? p.updatedAt
+                    : p?.updatedAt
+                      ? new Date(p.updatedAt).toISOString()
+                      : p?.updated_at
+                        ? new Date(p.updated_at).toISOString()
+                        : new Date().toISOString();
+
+            return {
+                _id: String(p?._id ?? ""),
+                name: String(p?.name ?? ""),
+                updatedAt: updated,
+                current_stage: String(p?.current_stage ?? "Q1"),
+                status: typeof p?.status === "string" ? p.status : undefined,
+            };
+        });
     } catch (error) {
         console.error("Error fetching projects:", error);
         return [];
+    } finally {
+        clearTimeout(timeout);
     }
 }
 
 async function fetchUser() {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
     try {
         const cookieStore = await cookies();
         const cookieHeader = cookieStore
             .getAll()
             .map((c) => `${c.name}=${c.value}`)
             .join("; ");
-        const base =
-            process.env.NEXT_PUBLIC_BASE_URL ||
-            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-        const res = await fetch(`${base}/api/auth/me`, {
+        const res = await fetch(buildApiUrl("/api/auth/me"), {
             cache: "no-store",
             headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+            signal: controller.signal,
         });
         if (!res.ok || !res.headers.get("content-type")?.includes("application/json")) {
             return { full_name: "Teacher" };
@@ -54,6 +87,8 @@ async function fetchUser() {
         return { full_name: data.user?.full_name || "Teacher" };
     } catch {
         return { full_name: "Teacher" };
+    } finally {
+        clearTimeout(timeout);
     }
 }
 
@@ -76,7 +111,7 @@ export default async function Home() {
                     </div>
                 ) : (
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {projects.map((project) => (
+                        {projects.map((project: ProjectSummary) => (
                             <ProjectCard key={project._id} project={project} />
                         ))}
                     </div>

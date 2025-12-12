@@ -8,7 +8,7 @@ function getKey(stageId?: string) {
 
 export async function GET(
     req: Request,
-    context: { params: { id: string } | Promise<{ id: string }> }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         await connectDB();
@@ -36,7 +36,7 @@ export async function GET(
 
 export async function POST(
     req: Request,
-    context: { params: { id: string } | Promise<{ id: string }> }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const params = await context.params;

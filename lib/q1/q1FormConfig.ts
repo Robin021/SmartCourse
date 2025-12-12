@@ -176,13 +176,16 @@ export function formDataToSWOTInput(formData: Record<string, any>): {
     region?: string;
     additionalNotes?: string;
 } {
-    const extractItems = <T extends "strength" | "weakness" | "opportunity" | "threat">(
+    const extractItems = <
+        T extends "strength" | "weakness" | "opportunity" | "threat",
+        C extends "internal" | "external"
+    >(
         prefix: string,
         count: number,
-        category: "internal" | "external",
+        category: C,
         type: T
     ) => {
-        const items: Array<{ id: string; category: typeof category; type: T; description: string; score: number }> = [];
+        const items: Array<{ id: string; category: C; type: T; description: string; score: number }> = [];
 
         for (let i = 1; i <= count; i++) {
             const description = formData[`${prefix}_${i}_description`];

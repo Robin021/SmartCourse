@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Project from "@/models/Project";
+import { initializeStages } from "@/models/Project";
 import StageConfig from "@/models/StageConfig";
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
@@ -87,19 +88,14 @@ export async function POST(req: Request) {
         const config_version = latestConfig?.version || "1.0.0";
 
         // Create Project
+        const stages = initializeStages();
         const project = await Project.create({
             name,
             tenant_id,
             school_id,
             config_version,
             current_stage: "Q1",
-            stages: {
-                Q1: {
-                    status: "NOT_STARTED",
-                    form_data: {},
-                    summary: {},
-                },
-            },
+            stages,
         });
 
         return NextResponse.json({ success: true, project });

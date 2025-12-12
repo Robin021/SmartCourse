@@ -3,6 +3,8 @@ import StageConfig from "@/models/StageConfig";
 import { Document, HeadingLevel, Packer, Paragraph, TextRun } from "docx";
 import PDFDocument from "pdfkit";
 import PptxGenJS from "pptxgenjs";
+import { renderWithTemplate, getTemplateById, validateTemplateData } from "./templates";
+import type { ExportFormat as TemplateExportFormat, TemplateValidationResult } from "./templates/types";
 
 type ExportFormat = "text" | "docx" | "pdf" | "pptx";
 
@@ -10,6 +12,10 @@ interface ExportOptions {
     projectId: string;
     stages?: string[]; // default all
     format?: ExportFormat;
+    /** 模板ID（可选，不传则使用原有逻辑） */
+    templateId?: string;
+    /** 自定义章节选择（仅模板模式有效） */
+    selectedSections?: string[];
 }
 
 export interface StageExportSection {
@@ -284,7 +290,7 @@ async function renderDocxBundle(projectName: string, sections: StageExportSectio
     return Packer.toBuffer(doc);
 }
 
-function pdfToBuffer(doc: PDFDocument): Promise<Buffer> {
+function pdfToBuffer(doc: InstanceType<typeof PDFDocument>): Promise<Buffer> {
     return new Promise((resolve, reject) => {
         const buffers: Buffer[] = [];
         doc.on("data", (data) => buffers.push(Buffer.isBuffer(data) ? data : Buffer.from(data)));
@@ -300,7 +306,8 @@ async function renderPdfBundle(projectName: string, sections: StageExportSection
     doc.moveDown();
 
     sections.forEach((section) => {
-        doc.fontSize(14).text(`${section.stageId} ${section.name}`, { bold: true });
+        doc.font("Helvetica-Bold").fontSize(14).text(`${section.stageId} ${section.name}`);
+        doc.font("Helvetica");
         if (section.description) doc.fontSize(10).fillColor("#6b7280").text(section.description);
         if (section.status) doc.fontSize(10).fillColor("#666").text(`状态: ${section.status}`);
         if (section.score !== undefined) doc.fontSize(10).fillColor("#666").text(`评分: ${section.score}`);
@@ -365,7 +372,7 @@ async function renderPptBundle(projectName: string, sections: StageExportSection
             });
         }
 
-        const bulletLines = chunkTextForSlide(section.content);
+        const bulletLines = chunkTextForSlide(section.content).join("\n");
         slide.addText(bulletLines, {
             x: 0.5,
             y: section.description ? 1.4 : 1.2,
@@ -398,7 +405,7 @@ async function renderPptBundle(projectName: string, sections: StageExportSection
                 bold: true,
             });
             slide.addText(
-                section.tableRows.map((row) => `${row.key}: ${row.value || "—"}`),
+                section.tableRows.map((row) => `${row.key}: ${row.value || "—"}`).join("\n"),
                 {
                     x: 0.5,
                     y: 5.8,
@@ -411,7 +418,11 @@ async function renderPptBundle(projectName: string, sections: StageExportSection
         }
     });
 
-    return pptx.write("nodebuffer");
+    const out = await (pptx.write({ outputType: "nodebuffer" } as any) as any);
+    if (Buffer.isBuffer(out)) return out;
+    if (out instanceof Uint8Array) return Buffer.from(out);
+    if (out instanceof ArrayBuffer) return Buffer.from(new Uint8Array(out));
+    return Buffer.from(out);
 }
 
 export async function buildExportBundle(options: ExportOptions): Promise<{
@@ -419,8 +430,12 @@ export async function buildExportBundle(options: ExportOptions): Promise<{
     contentType: string;
     body: Buffer | string;
     sections: StageExportSection[];
+    /** 模板信息（仅模板模式） */
+    template?: { id: string; name: string; type: string };
+    /** 校验结果（仅模板模式） */
+    validation?: TemplateValidationResult;
 }> {
-    const { projectId, stages, format = "text" } = options;
+    const { projectId, stages, format = "text", templateId, selectedSections } = options;
     const { default: connectDB } = await import("@/lib/db");
     await connectDB();
 
@@ -432,6 +447,37 @@ export async function buildExportBundle(options: ExportOptions): Promise<{
     const config = await StageConfig.findOne({ version: project.config_version }).lean();
     const stageDefs = config?.stages || [];
 
+    // 如果指定了模板，使用模板渲染
+    if (templateId) {
+        const template = getTemplateById(templateId);
+        if (!template) {
+            throw new Error(`模板不存在: ${templateId}`);
+        }
+
+        const result = await renderWithTemplate(
+            {
+                projectId,
+                templateId,
+                format: format as TemplateExportFormat,
+                selectedSections,
+            },
+            project
+        );
+
+        // 同时构建 sections 以保持返回结构一致
+        const sections = buildExportSections({ project, stageDefs, stages });
+
+        return {
+            filename: result.filename,
+            contentType: result.contentType,
+            body: result.body,
+            sections,
+            template: result.template,
+            validation: result.validation,
+        };
+    }
+
+    // 原有逻辑（无模板）
     const sections = buildExportSections({
         project,
         stageDefs,

@@ -13,7 +13,7 @@ import { q10GenerationService } from "@/lib/q10";
 
 export async function POST(
     req: Request,
-    context: { params: { id: string; stageId: string } | Promise<{ id: string; stageId: string }> }
+    context: { params: Promise<{ id: string; stageId: string }> }
 ) {
     const { id: projectId, stageId } = await context.params;
 
@@ -49,6 +49,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    stream: shouldStream,
+                    onToken,
                 });
                 return {
                     success: true,
@@ -67,6 +69,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    stream: shouldStream,
+                    onToken,
                 });
                 return {
                     success: true,
@@ -86,6 +90,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    stream: shouldStream,
+                    onToken,
                 });
                 return {
                     success: true,
@@ -104,6 +110,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    stream: shouldStream,
+                    onToken,
                 });
                 return {
                     success: true,
@@ -124,6 +132,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    stream: shouldStream,
+                    onToken,
                 });
                 return {
                     success: true,
@@ -142,6 +152,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    stream: shouldStream,
+                    onToken,
                 });
                 return {
                     success: true,
@@ -160,6 +172,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    stream: shouldStream,
+                    onToken,
                 });
                 return {
                     success: true,
@@ -178,6 +192,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    stream: shouldStream,
+                    onToken,
                 });
                 return {
                     success: true,
@@ -196,6 +212,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    stream: shouldStream,
+                    onToken,
                 });
                 return {
                     success: true,

@@ -35,6 +35,7 @@ export interface LLMProviderConfig {
     model: string;
     provider: string;
     name: string;
+    max_output_tokens?: number;
 }
 
 // ============================================================================
@@ -60,7 +61,8 @@ export class LLMClient {
     private static readonly MAX_RETRIES = 3;
     private static readonly RETRY_DELAYS = [1000, 2000, 4000]; // 1s, 2s, 4s
     private static readonly DEFAULT_TEMPERATURE = 0.7;
-    private static readonly DEFAULT_MAX_TOKENS = 2000;
+    // DEFAULT_MAX_TOKENS removed - let the LLM API decide the limit
+    // If provider config has max_output_tokens, use that; otherwise omit max_tokens from request
     private static readonly HTTP_TIMEOUT_MS = 300000; // allow longer streaming responses
 
     /**
@@ -112,6 +114,7 @@ export class LLMClient {
             model: selected.model,
             provider: selected.provider,
             name: selected.name,
+            max_output_tokens: selected.max_output_tokens,
         };
     }
 
@@ -133,7 +136,9 @@ export class LLMClient {
         }
 
         const temperature = options?.temperature ?? this.DEFAULT_TEMPERATURE;
-        const maxTokens = options?.maxTokens ?? this.DEFAULT_MAX_TOKENS;
+        // Use provider config or passed option; if neither, let API decide (no limit)
+        const maxTokens = options?.maxTokens ?? 
+            (typeof provider.max_output_tokens === "number" ? provider.max_output_tokens : undefined);
         const model = this.normalizeChatModel(options?.model ?? provider.model);
 
         return llmQueue.run(() =>
@@ -151,7 +156,7 @@ export class LLMClient {
     private static async chatWithRetry(
         provider: LLMProviderConfig,
         messages: ChatMessage[],
-        options: { temperature: number; maxTokens: number; model: string }
+        options: { temperature: number; maxTokens?: number; model: string }
     ): Promise<ChatResponse> {
         let lastError: Error | null = null;
 
@@ -192,16 +197,19 @@ export class LLMClient {
     private static async callLLMAPI(
         provider: LLMProviderConfig,
         messages: ChatMessage[],
-        options: { temperature: number; maxTokens: number; model: string }
+        options: { temperature: number; maxTokens?: number; model: string }
     ): Promise<ChatResponse> {
         const url = this.buildChatURL(provider.base_url);
 
-        const requestBody = {
+        const requestBody: Record<string, any> = {
             model: options.model,
             messages: messages,
             temperature: options.temperature,
-            max_tokens: options.maxTokens,
         };
+        // Only include max_tokens if explicitly configured (let API decide otherwise)
+        if (options.maxTokens !== undefined) {
+            requestBody.max_tokens = options.maxTokens;
+        }
 
         let response: Response;
         try {
@@ -317,18 +325,23 @@ export class LLMClient {
         }
 
         const temperature = options?.temperature ?? this.DEFAULT_TEMPERATURE;
-        const maxTokens = options?.maxTokens ?? this.DEFAULT_MAX_TOKENS;
+        // Use provider config or passed option; if neither, let API decide (no limit)
+        const maxTokens = options?.maxTokens ?? 
+            (typeof provider.max_output_tokens === "number" ? provider.max_output_tokens : undefined);
         const model = this.normalizeChatModel(options?.model ?? provider.model);
 
         const url = this.buildChatURL(provider.base_url);
 
-        const requestBody = {
+        const requestBody: Record<string, any> = {
             model: model,
             messages: messages,
             temperature: temperature,
-            max_tokens: maxTokens,
             stream: true,
         };
+        // Only include max_tokens if explicitly configured
+        if (maxTokens !== undefined) {
+            requestBody.max_tokens = maxTokens;
+        }
 
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), this.HTTP_TIMEOUT_MS);
@@ -353,7 +366,9 @@ export class LLMClient {
                     /unsupported model|model not found|invalid model/i.test(errorMessage));
             if (unsupportedModel) {
                 console.warn("[LLMClient] Unsupported model (stream), returning fallback content:", errorMessage);
-                return this.buildFallbackResponse(messages);
+                const fallback = this.buildFallbackResponse(messages);
+                yield fallback.content;
+                return fallback.usage;
             }
             throw new LLMError(
                 `LLM API error (${response.status}): ${errorMessage}`,

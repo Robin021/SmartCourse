@@ -2,6 +2,8 @@ import path from "path";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // 启用 standalone 输出模式，用于 Docker 部署
+  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
   turbopack: {
     root: process.cwd(),
     resolveAlias: {
@@ -11,7 +13,8 @@ const nextConfig = {
   webpack: (config) => {
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
-      "proxy-agent": path.resolve(__dirname, "proxy-agent-stub"),
+      // Use process.cwd() because __dirname is not defined in ESM config files.
+      "proxy-agent": path.resolve(process.cwd(), "proxy-agent-stub"),
     };
     return config;
   },

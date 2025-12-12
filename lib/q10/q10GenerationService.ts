@@ -20,6 +20,8 @@ export interface Q10GenerationRequest {
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
     user?: { id?: string; name?: string };
     useRag?: boolean;
+    stream?: boolean;
+    onToken?: (chunk: string) => void;
 }
 
 export interface Q10GenerationResult {
@@ -39,21 +41,40 @@ export class Q10GenerationService {
     }
 
     async generate(request: Q10GenerationRequest): Promise<Q10GenerationResult> {
-        const { projectId, formData: rawFormData, conversationHistory, user } = request;
+        const {
+            projectId,
+            formData: rawFormData,
+            conversationHistory,
+            user,
+            stream,
+            onToken,
+        } = request;
         const formData = normalizeQ10FormData(rawFormData);
 
         const previousContext = await stageService.getPreviousStagesContext(projectId, "Q10");
         const previousContextMap = this.toContextMap(previousContext);
 
         const generationInput = buildQ10GenerationInput(formData, previousContextMap);
-        const generationResult = await GenerationService.generate({
-            projectId,
-            stage: "Q10",
-            userInput: generationInput,
-            previousStagesContext: previousContextMap,
-            conversationHistory,
-            useRag: request.useRag ?? true,
-        });
+        const generationResult = stream
+            ? await GenerationService.generateStream(
+                  {
+                      projectId,
+                      stage: "Q10",
+                      userInput: generationInput,
+                      previousStagesContext: previousContextMap,
+                      conversationHistory,
+                      useRag: request.useRag ?? true,
+                  },
+                  { onToken }
+              )
+            : await GenerationService.generate({
+                  projectId,
+                  stage: "Q10",
+                  userInput: generationInput,
+                  previousStagesContext: previousContextMap,
+                  conversationHistory,
+                  useRag: request.useRag ?? true,
+              });
 
         const evaluationScore = computeEvaluationScore(formData, generationResult.ragResults.length);
         const keywords = extractQ10Keywords(generationResult.content, formData);

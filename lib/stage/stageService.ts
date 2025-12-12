@@ -35,17 +35,28 @@ export interface PreviousStageContext {
  */
 export class StageService {
     /**
+     * Normalize stage id to canonical uppercase and validate.
+     */
+    private normalizeStage(stage: string): StageId {
+        const normalized = (stage || "").toUpperCase();
+        if (!VALID_STAGES.includes(normalized as StageId)) {
+            throw new Error(`Invalid stage: ${stage}. Must be one of: ${VALID_STAGES.join(", ")}`);
+        }
+        return normalized as StageId;
+    }
+
+    /**
      * Get stage data for a specific project and stage
      */
     async getStageData(projectId: string, stage: StageId): Promise<StageData> {
-        this.validateStage(stage);
+        const normalizedStage = this.normalizeStage(stage);
         
         const project = await Project.findById(projectId);
         if (!project) {
             throw new Error(`Project not found: ${projectId}`);
         }
 
-        const stageData = project.stages?.[stage];
+        const stageData = project.stages?.[normalizedStage];
         
         return {
             status: stageData?.status || "not_started",
@@ -67,7 +78,7 @@ export class StageService {
         stage: StageId,
         input: Record<string, any>
     ): Promise<void> {
-        this.validateStage(stage);
+        const normalizedStage = this.normalizeStage(stage);
 
         const project = await Project.findById(projectId);
         if (!project) {
@@ -80,16 +91,17 @@ export class StageService {
         }
 
         // Initialize stage data if needed
-        if (!project.stages[stage]) {
-            project.stages[stage] = { status: "not_started" };
+        if (!project.stages[normalizedStage]) {
+            project.stages[normalizedStage] = { status: "not_started" };
         }
 
         // Update input
-        project.stages[stage].input = input;
+        project.stages[normalizedStage].input = input;
 
         // Update status to in_progress if not_started
-        if (project.stages[stage].status === "not_started") {
-            project.stages[stage].status = "in_progress";
+        const currentStatus = (project.stages[normalizedStage].status || "").toString().toLowerCase();
+        if (currentStatus === "not_started" || currentStatus === "not started") {
+            project.stages[normalizedStage].status = "in_progress";
         }
 
         // Mark stages as modified for Mongoose
@@ -106,7 +118,7 @@ export class StageService {
         output: Record<string, any>,
         diagnosticScore?: { overall: number; dimensions?: Record<string, number> }
     ): Promise<void> {
-        this.validateStage(stage);
+        const normalizedStage = this.normalizeStage(stage);
 
         const project = await Project.findById(projectId);
         if (!project) {
@@ -117,14 +129,14 @@ export class StageService {
             project.stages = {};
         }
 
-        if (!project.stages[stage]) {
-            project.stages[stage] = { status: "in_progress" };
+        if (!project.stages[normalizedStage]) {
+            project.stages[normalizedStage] = { status: "in_progress" };
         }
 
-        project.stages[stage].output = output;
+        project.stages[normalizedStage].output = output;
         
         if (diagnosticScore) {
-            project.stages[stage].diagnostic_score = diagnosticScore;
+            project.stages[normalizedStage].diagnostic_score = diagnosticScore;
         }
 
         project.markModified("stages");
@@ -136,7 +148,7 @@ export class StageService {
      * Records completion timestamp
      */
     async completeStage(projectId: string, stage: StageId): Promise<void> {
-        this.validateStage(stage);
+        const normalizedStage = this.normalizeStage(stage);
 
         const project = await Project.findById(projectId);
         if (!project) {
@@ -147,12 +159,12 @@ export class StageService {
             project.stages = {};
         }
 
-        if (!project.stages[stage]) {
-            project.stages[stage] = { status: "not_started" };
+        if (!project.stages[normalizedStage]) {
+            project.stages[normalizedStage] = { status: "not_started" };
         }
 
-        project.stages[stage].status = "completed";
-        project.stages[stage].completed_at = new Date();
+        project.stages[normalizedStage].status = "completed";
+        project.stages[normalizedStage].completed_at = new Date();
 
         // Update overall progress
         project.overall_progress = this.calculateProgress(project.stages);
@@ -170,14 +182,14 @@ export class StageService {
         projectId: string,
         currentStage: StageId
     ): Promise<PreviousStageContext[]> {
-        this.validateStage(currentStage);
+        const normalizedStage = this.normalizeStage(currentStage);
 
         const project = await Project.findById(projectId);
         if (!project) {
             throw new Error(`Project not found: ${projectId}`);
         }
 
-        const currentIndex = VALID_STAGES.indexOf(currentStage);
+        const currentIndex = VALID_STAGES.indexOf(normalizedStage);
         const previousStages = VALID_STAGES.slice(0, currentIndex);
         const context: PreviousStageContext[] = [];
 
@@ -228,14 +240,6 @@ export class StageService {
         return (completedCount / VALID_STAGES.length) * 100;
     }
 
-    /**
-     * Validate that a stage identifier is valid
-     */
-    private validateStage(stage: string): asserts stage is StageId {
-        if (!VALID_STAGES.includes(stage as StageId)) {
-            throw new Error(`Invalid stage: ${stage}. Must be one of: ${VALID_STAGES.join(", ")}`);
-        }
-    }
 }
 
 // Export singleton instance

@@ -20,6 +20,8 @@ export interface Q6GenerationRequest {
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
     user?: { id?: string; name?: string };
     useRag?: boolean;
+    stream?: boolean;
+    onToken?: (chunk: string) => void;
 }
 
 export interface Q6GenerationResult {
@@ -39,21 +41,40 @@ export class Q6GenerationService {
     }
 
     async generate(request: Q6GenerationRequest): Promise<Q6GenerationResult> {
-        const { projectId, formData: rawFormData, conversationHistory, user } = request;
+        const {
+            projectId,
+            formData: rawFormData,
+            conversationHistory,
+            user,
+            stream,
+            onToken,
+        } = request;
         const formData = normalizeQ6FormData(rawFormData);
 
         const previousContext = await stageService.getPreviousStagesContext(projectId, "Q6");
         const previousContextMap = this.toContextMap(previousContext);
 
         const generationInput = buildQ6GenerationInput(formData, previousContextMap);
-        const generationResult = await GenerationService.generate({
-            projectId,
-            stage: "Q6",
-            userInput: generationInput,
-            previousStagesContext: previousContextMap,
-            conversationHistory,
-            useRag: request.useRag ?? true,
-        });
+        const generationResult = stream
+            ? await GenerationService.generateStream(
+                  {
+                      projectId,
+                      stage: "Q6",
+                      userInput: generationInput,
+                      previousStagesContext: previousContextMap,
+                      conversationHistory,
+                      useRag: request.useRag ?? true,
+                  },
+                  { onToken }
+              )
+            : await GenerationService.generate({
+                  projectId,
+                  stage: "Q6",
+                  userInput: generationInput,
+                  previousStagesContext: previousContextMap,
+                  conversationHistory,
+                  useRag: request.useRag ?? true,
+              });
 
         const consistency = computeValueConsistencyScore(formData, generationResult.ragResults.length);
         const keywords = extractQ6Keywords(generationResult.content, formData);

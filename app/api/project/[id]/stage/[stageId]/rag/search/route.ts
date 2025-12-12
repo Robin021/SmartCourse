@@ -6,10 +6,10 @@ import { searchSimilar, initVectorDb } from "@/lib/vectorDb";
 
 export async function POST(
     req: Request,
-    context: { params: { id: string; stageId: string } | Promise<{ id: string; stageId: string }> }
+    context: { params: Promise<{ id: string; stageId: string }> }
 ) {
     try {
-        await context.params;
+        const { stageId } = await context.params;
         const { query, top_k = 5 } = await req.json();
 
         if (!query || query.trim().length === 0) {

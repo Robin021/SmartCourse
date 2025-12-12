@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import User from "@/models/User";
 import Project from "@/models/Project";
+import { initializeStages } from "@/models/Project";
 import StageConfig from "@/models/StageConfig";
 import PromptTemplate from "@/models/PromptTemplate";
 import PromptVersion from "@/models/PromptVersion";
@@ -19,20 +20,35 @@ import { Q10_PROMPT_METADATA } from "@/lib/q10";
 // Default system prompts to seed
 const DEFAULT_PROMPTS = [
     {
-        name: "Chat Assistant",
+        name: "AI 助手 (Chat Assistant)",
         key: "chat_system",
-        template: `You are an expert educational consultant helping design a school development plan.
-You have access to the current project data. Use it to answer the user's questions thoughtfully and professionally.
+        template: `你是一位专业的学校课程设计AI助手，正在帮助用户完善他们的学校课程规划方案。
 
-CONTEXT:
+## 项目背景信息
 {{context}}
 
-GUIDELINES:
-- Be helpful, concise, and professional
-- Reference the project data when relevant
-- Provide actionable suggestions
-- Ask clarifying questions if needed`,
-        description: "Main system prompt for project chat assistant",
+## 你的角色与职责
+你是一位**对话式助手**，而非内容生成器。你的主要任务是：
+1. **回答问题**：解答用户关于课程设计、教育理论、方案撰写等方面的疑问
+2. **提供建议**：基于用户当前的输入和已生成的内容，给出针对性的改进建议
+3. **协助修改**：当用户选中特定文本并要求修改时，帮助优化该段内容
+4. **解释说明**：帮助用户理解各阶段的目标、要求和最佳实践
+
+## 重要行为准则
+- **不要主动生成完整报告**：除非用户明确要求"生成完整内容"或"重新生成"
+- **保持对话性**：像一位教育顾问那样与用户交流，而不是直接输出大段文本
+- **针对性回答**：根据用户的具体问题给出简洁、有针对性的回答
+- **引用已有内容**：在讨论时引用用户已输入的表单数据或已生成的草稿内容
+- **使用中文回复**：所有回答都应该使用中文
+
+## 对话示例
+- 用户问"这段话怎么改更好？" → 分析选中内容并给出2-3种改进方案
+- 用户问"什么是五育并举？" → 简洁解释概念并说明如何在课程设计中体现
+- 用户问"我的SWOT分析有什么问题？" → 根据已填写的表单数据给出具体反馈
+- 用户说"帮我润色这段" → 只修改指定段落，不改动其他内容
+
+请记住：你是助手，不是替代用户工作的机器。让用户保持主导权，你负责提供专业支持。`,
+        description: "AI助手聊天系统提示词 - 用于阶段页面右侧的对话式助手",
         is_system: true,
     },
     {
@@ -566,19 +582,20 @@ export async function GET() {
         const existingProject = await Project.findOne({ name: projectName });
 
         if (!existingProject) {
+            const stages = initializeStages();
+            stages.Q1 = {
+                ...stages.Q1,
+                status: "in_progress",
+                input: { school_name: "Demo High School" },
+            };
+
             await Project.create({
                 tenant_id: "bureau_01",
                 school_id: "school_01",
                 name: projectName,
                 config_version: version,
                 current_stage: "Q1",
-                stages: {
-                    Q1: {
-                        status: "IN_PROGRESS",
-                        form_data: { school_name: "Demo High School" },
-                        summary: {},
-                    },
-                },
+                stages,
             });
         }
 

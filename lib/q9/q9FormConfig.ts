@@ -74,7 +74,7 @@ export const Q9_FORM_SCHEMA: Q9FormSchema = {
                     type: "multiselect",
                     label: "路径选择",
                     required: true,
-                    options: PATH_OPTIONS,
+                    options: [...PATH_OPTIONS],
                 },
                 {
                     key: "path_keywords",

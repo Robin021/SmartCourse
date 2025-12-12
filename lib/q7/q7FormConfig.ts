@@ -65,7 +65,7 @@ export const Q7_FORM_SCHEMA: Q7FormSchema = {
                     type: "multiselect",
                     label: "重点维度",
                     required: true,
-                    options: DIMENSION_OPTIONS,
+                    options: [...DIMENSION_OPTIONS],
                     helpText: "可多选，优先级按顺序排列。",
                 },
                 {

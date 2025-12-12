@@ -25,6 +25,8 @@ export interface Q2GenerationRequest {
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
     user?: { id?: string; name?: string };
     useRag?: boolean;
+    stream?: boolean;
+    onToken?: (chunk: string) => void;
 }
 
 export interface Q2GenerationResult {
@@ -54,7 +56,15 @@ export class Q2GenerationService {
      * Generate Q2 教育哲学陈述
      */
     async generate(request: Q2GenerationRequest): Promise<Q2GenerationResult> {
-        const { projectId, formData: rawFormData, conversationHistory, user } = request;
+        const {
+            projectId,
+            formData: rawFormData,
+            conversationHistory,
+            user,
+            useRag,
+            stream,
+            onToken,
+        } = request;
         const formData = normalizeQ2FormData(rawFormData);
 
         // 1) Gather previous stage (Q1) context
@@ -65,14 +75,26 @@ export class Q2GenerationService {
         const generationInput = buildQ2GenerationInput(formData, previousContextMap);
 
         // 3) Call shared GenerationService
-        const generationResult = await GenerationService.generate({
-            projectId,
-            stage: "Q2",
-            userInput: generationInput,
-            previousStagesContext: previousContextMap,
-            conversationHistory,
-            useRag: request.useRag ?? true,
-        });
+        const generationResult = stream
+            ? await GenerationService.generateStream(
+                  {
+                      projectId,
+                      stage: "Q2",
+                      userInput: generationInput,
+                      previousStagesContext: previousContextMap,
+                      conversationHistory,
+                      useRag: useRag ?? true,
+                  },
+                  { onToken }
+              )
+            : await GenerationService.generate({
+                  projectId,
+                  stage: "Q2",
+                  userInput: generationInput,
+                  previousStagesContext: previousContextMap,
+                  conversationHistory,
+                  useRag: useRag ?? true,
+              });
 
         // 4) Evaluate and enrich results
         const theoryFitScore = computeTheoryFitScore(formData, generationResult.ragResults.length);

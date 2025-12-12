@@ -20,6 +20,8 @@ export interface Q3GenerationRequest {
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
     user?: { id?: string; name?: string };
     useRag?: boolean;
+    stream?: boolean;
+    onToken?: (chunk: string) => void;
 }
 
 export interface Q3GenerationResult {
@@ -44,7 +46,14 @@ export class Q3GenerationService {
     }
 
     async generate(request: Q3GenerationRequest): Promise<Q3GenerationResult> {
-        const { projectId, formData: rawFormData, conversationHistory, user } = request;
+        const {
+            projectId,
+            formData: rawFormData,
+            conversationHistory,
+            user,
+            stream,
+            onToken,
+        } = request;
         const formData = normalizeQ3FormData(rawFormData);
 
         // Get previous context (Q1/Q2)
@@ -54,15 +63,27 @@ export class Q3GenerationService {
         // Build generation input
         const generationInput = buildQ3GenerationInput(formData, previousContextMap);
 
-        // Generate
-        const generationResult = await GenerationService.generate({
-            projectId,
-            stage: "Q3",
-            userInput: generationInput,
-            previousStagesContext: previousContextMap,
-            conversationHistory,
-            useRag: request.useRag ?? true,
-        });
+        // Generate (streaming if requested)
+        const generationResult = stream
+            ? await GenerationService.generateStream(
+                  {
+                      projectId,
+                      stage: "Q3",
+                      userInput: generationInput,
+                      previousStagesContext: previousContextMap,
+                      conversationHistory,
+                      useRag: request.useRag ?? true,
+                  },
+                  { onToken }
+              )
+            : await GenerationService.generate({
+                  projectId,
+                  stage: "Q3",
+                  userInput: generationInput,
+                  previousStagesContext: previousContextMap,
+                  conversationHistory,
+                  useRag: request.useRag ?? true,
+              });
 
         // Validation & concept extraction
         const validation = this.contentValidator.validate(generationResult.content);

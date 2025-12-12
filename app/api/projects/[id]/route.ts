@@ -5,7 +5,7 @@ import StageConfig from "@/models/StageConfig";
 
 export async function GET(
     req: Request,
-    context: { params: { id: string } | Promise<{ id: string }> }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         await connectDB();
@@ -47,7 +47,7 @@ export async function GET(
             return {
                 ...stageDef,
                 status: normalizeStatus(projectStage.status),
-                last_updated: projectStage.updatedAt,
+                last_updated: (projectStage as any).updatedAt ?? (projectStage as any).updated_at,
             };
         });
 

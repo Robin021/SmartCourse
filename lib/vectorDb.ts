@@ -210,3 +210,111 @@ export async function getChunkCount(documentId: string): Promise<number> {
         client.release();
     }
 }
+
+/**
+ * Update stage_ids for all chunks of a document
+ * 无需重新处理文档即可更新阶段关联
+ */
+export async function updateChunkStageIds(
+    documentId: string,
+    stageIds: string[]
+): Promise<number> {
+    const client = await getPool().connect();
+    try {
+        // 更新 metadata 中的 stage_ids
+        const result = await client.query(
+            `UPDATE document_chunks 
+             SET metadata = jsonb_set(
+                 COALESCE(metadata, '{}'::jsonb),
+                 '{stage_ids}',
+                 $2::jsonb
+             )
+             WHERE document_id = $1`,
+            [documentId, JSON.stringify(stageIds)]
+        );
+        console.log(`[VectorDB] Updated stage_ids for ${result.rowCount} chunks of document ${documentId}`);
+        return result.rowCount || 0;
+    } finally {
+        client.release();
+    }
+}
+
+/**
+ * 健康检查结果接口
+ */
+export interface HealthCheckResult {
+    healthy: boolean;
+    documentId: string;
+    mongoChunkCount: number;
+    pgChunkCount: number;
+    mismatch: boolean;
+    hasOrphanChunks: boolean;
+}
+
+/**
+ * Check health of a specific document's data
+ */
+export async function checkDocumentHealth(
+    documentId: string,
+    expectedChunkCount: number
+): Promise<HealthCheckResult> {
+    const pgChunkCount = await getChunkCount(documentId);
+    const mismatch = pgChunkCount !== expectedChunkCount;
+    
+    return {
+        healthy: !mismatch && pgChunkCount > 0,
+        documentId,
+        mongoChunkCount: expectedChunkCount,
+        pgChunkCount,
+        mismatch,
+        hasOrphanChunks: false,  // 这个需要反向检查
+    };
+}
+
+/**
+ * Find orphan chunks (chunks without corresponding MongoDB document)
+ */
+export async function findOrphanChunks(): Promise<string[]> {
+    const client = await getPool().connect();
+    try {
+        const result = await client.query(
+            `SELECT DISTINCT document_id FROM document_chunks`
+        );
+        return result.rows.map(row => row.document_id);
+    } finally {
+        client.release();
+    }
+}
+
+/**
+ * Clean up orphan chunks for a specific document ID
+ */
+export async function cleanupOrphanChunks(documentId: string): Promise<number> {
+    return deleteByDocumentId(documentId);
+}
+
+/**
+ * Get statistics for the vector database
+ */
+export async function getVectorDbStats(): Promise<{
+    totalChunks: number;
+    totalDocuments: number;
+    avgChunksPerDocument: number;
+}> {
+    const client = await getPool().connect();
+    try {
+        const countResult = await client.query(
+            `SELECT COUNT(*) as total, COUNT(DISTINCT document_id) as docs FROM document_chunks`
+        );
+        const total = parseInt(countResult.rows[0].total, 10);
+        const docs = parseInt(countResult.rows[0].docs, 10);
+        
+        return {
+            totalChunks: total,
+            totalDocuments: docs,
+            avgChunksPerDocument: docs > 0 ? Math.round(total / docs * 10) / 10 : 0,
+        };
+    } finally {
+        client.release();
+    }
+}

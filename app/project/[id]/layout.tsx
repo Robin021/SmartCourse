@@ -12,9 +12,11 @@ export default function ProjectLayout({
     const projectId = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
     return (
-        <div className="flex h-screen overflow-hidden bg-background">
-            <StageSidebar projectId={projectId || ""} />
-            <main className="flex-1 flex flex-col overflow-hidden">{children}</main>
+        <div className="flex min-h-screen bg-background">
+            <div className="sticky top-0 h-screen shrink-0">
+                <StageSidebar projectId={projectId || ""} />
+            </div>
+            <main className="flex-1 min-h-screen">{children}</main>
         </div>
     );
 }

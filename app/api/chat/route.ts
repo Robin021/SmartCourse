@@ -10,6 +10,22 @@ const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com";
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-key";
 
+const findFieldValue = (input: any, matcher: (key: string) => boolean): string | undefined => {
+    if (!input) return undefined;
+    if (typeof input !== "object") return undefined;
+
+    for (const [key, value] of Object.entries(input)) {
+        if (matcher(key) && typeof value === "string" && value.trim()) {
+            return value.trim();
+        }
+        if (value && typeof value === "object") {
+            const nested = findFieldValue(value, matcher);
+            if (nested) return nested;
+        }
+    }
+    return undefined;
+};
+
 // Fallback prompt if database prompt not found
 const FALLBACK_SYSTEM_PROMPT = `You are an expert educational consultant helping design a school plan. 
 You have access to the current project data. Use it to answer the user's questions.
@@ -79,9 +95,31 @@ export async function POST(req: Request) {
         const currentStageName =
             configStages.find((s: any) => s.stage_id === stageId)?.name || stageId;
 
+        const resolvedSchoolName =
+            findFieldValue(currentStageData?.input, (k) => /school.*name|学校名称/i.test(k)) ||
+            findFieldValue(contextInput, (k) => /school.*name|学校名称/i.test(k)) ||
+            project.name;
+        const resolvedRegion =
+            findFieldValue(currentStageData?.input, (k) => /region|地区|城市|province|city/i.test(k)) ||
+            findFieldValue(contextInput, (k) => /region|地区|城市|province|city/i.test(k)) ||
+            "";
+        const resolvedType =
+            findFieldValue(currentStageData?.input, (k) => /school.*type|学校类型/i.test(k)) ||
+            findFieldValue(contextInput, (k) => /school.*type|学校类型/i.test(k)) ||
+            "";
+
         let context = `Project Name: ${project.name}\nCurrent Stage: ${stageId || project.current_stage}\n`;
         if (currentStageName) {
             context += `Stage Title: ${currentStageName}\n`;
+        }
+        if (resolvedSchoolName) {
+            context += `School Name (resolved): ${resolvedSchoolName}\n`;
+        }
+        if (resolvedRegion) {
+            context += `Region/City: ${resolvedRegion}\n`;
+        }
+        if (resolvedType) {
+            context += `School Type: ${resolvedType}\n`;
         }
 
         if (currentStageData) {
@@ -141,7 +179,25 @@ export async function POST(req: Request) {
             console.log(`[A/B Test] User ${userId || "anonymous"} got prompt version ${promptResult.version}`);
         }
 
-        // 5. Filter and format history (last 10 messages to save tokens)
+        // 5. Build additional context hints (but NOT generation instructions)
+        let additionalHints = "";
+        
+        // Add school name hint if available
+        if (resolvedSchoolName) {
+            additionalHints += `\n\n注意：学校名称为"${resolvedSchoolName}"，请在回复中使用完整名称，不要缩写。`;
+        }
+        
+        // Add selection-specific instructions if user selected text
+        if (contextSelection) {
+            additionalHints += `\n\n用户选中了以下文本片段希望你帮助修改：
+---
+${contextSelection}
+---
+请针对这段选中的内容进行修改。返回格式为JSON：{"replacement":"<修改后的内容>","notes":"<简短说明或留空>"}
+注意：replacement 中不要包含问候语、身份介绍或多余的客套话，直接给出可以替换原文的内容。`;
+        }
+
+        // 6. Filter and format history (last 10 messages to save tokens)
         const recentHistory = (history || [])
             .slice(-10)
             .map((msg: any) => ({
@@ -152,12 +208,7 @@ export async function POST(req: Request) {
         const messages = [
             {
                 role: "system",
-                content:
-                    systemPrompt +
-                    "\n\nUse the provided stage input, current draft/output, and previous stage outputs. When user asks to modify, rewrite only the relevant parts of the current draft, keep untouched sections verbatim, and return the updated draft (not advice text). Keep alignment with existing data." +
-                    (contextSelection
-                        ? "\n\nA specific snippet is selected. Rewrite ONLY that snippet and return the rewritten snippet text (no other sections). Do not restate unchanged content."
-                        : "\n\nIf no snippet is provided, keep changes minimal and avoid rephrasing untouched sections."),
+                content: systemPrompt + additionalHints,
             },
             ...recentHistory,
             { role: "user", content: message },

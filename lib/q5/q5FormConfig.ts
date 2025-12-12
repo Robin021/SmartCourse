@@ -54,7 +54,7 @@ export const Q5_FORM_SCHEMA: Q5FormSchema = {
                     type: "multiselect",
                     label: "命名来源",
                     required: true,
-                    options: NAME_SOURCE_OPTIONS,
+                    options: [...NAME_SOURCE_OPTIONS],
                 },
                 {
                     key: "theme_keywords",

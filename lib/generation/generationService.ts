@@ -82,7 +82,8 @@ function stableSerialize(value: any): string {
 export class GenerationService {
     private static readonly DEFAULT_RAG_TOP_K = 5;
     private static readonly DEFAULT_TEMPERATURE = 0.7;
-    private static readonly DEFAULT_MAX_TOKENS = 2000;
+    // max_tokens is now controlled by the LLM provider config (Admin > LLM Settings)
+    // Set to undefined to use provider's max_output_tokens setting
     private static readonly CACHE_TTL_MS = 2 * 60 * 1000;
     private static cache: Map<string, { expiresAt: number; result: GenerationResult }> = new Map();
 
@@ -161,10 +162,10 @@ export class GenerationService {
             conversationHistory
         );
 
-        // 7. Call LLM
+        // 7. Call LLM (maxTokens controlled by provider config)
         const llmResponse = await LLMClient.chat(messages, {
             temperature: this.DEFAULT_TEMPERATURE,
-            maxTokens: this.DEFAULT_MAX_TOKENS,
+            // maxTokens is omitted - uses provider's max_output_tokens from Admin settings
         });
 
         // 8. Build metadata
@@ -245,7 +246,7 @@ export class GenerationService {
 
         const stream = LLMClient.chatStream(messages, {
             temperature: this.DEFAULT_TEMPERATURE,
-            maxTokens: this.DEFAULT_MAX_TOKENS,
+            // maxTokens is omitted - uses provider's max_output_tokens from Admin settings
         });
 
         let content = "";
@@ -413,14 +414,37 @@ export class GenerationService {
 
         // Add RAG results
         if (ragResults && ragResults.length > 0) {
-            const ragContent = ragResults
-                .map((r) => r.content)
-                .join("\n\n---\n\n");
+            const formattedRag = ragResults.map((r, idx) => {
+                const title =
+                    (r.metadata &&
+                        (r.metadata.original_name ||
+                            r.metadata.title ||
+                            r.metadata.heading ||
+                            r.metadata.source)) ||
+                    r.document_id ||
+                    `R${idx + 1}`;
+                const body = (r.content || "").trim();
+                const chunkInfo =
+                    r.metadata && (r.metadata.chunk_index !== undefined || r.metadata.total_chunks)
+                        ? ` (Chunk ${ (r.metadata.chunk_index ?? 0) + 1 }/${r.metadata.total_chunks || "?"})`
+                        : "";
+                return `[${idx + 1}] ${title}${chunkInfo}\n${body}`;
+            });
+            const citationGuide =
+                "引用格式：在正文中引用参考资料时，请在相关句尾添加对应编号，如 [1] 或 [1][3]；并在文末保留“参考资料”列表，列出 [编号] 文件名/来源。";
+            const footnoteList = formattedRag
+                .map((item, idx) => `[${idx + 1}] ${item.split("\n")[0].replace(/^\[\d+\]\s*/, "")}`)
+                .join("\n");
+            const ragContent = `${formattedRag.join("\n\n---\n\n")}\n\n${citationGuide}\n参考资料列表：\n${footnoteList}`;
             variables["rag_results"] = ragContent;
             variables["reference_materials"] = ragContent;
+            variables["rag_citation_note"] = citationGuide;
+            variables["rag_references"] = footnoteList;
         } else {
             variables["rag_results"] = "";
             variables["reference_materials"] = "";
+            variables["rag_citation_note"] = "";
+            variables["rag_references"] = "";
         }
 
         // Add school info

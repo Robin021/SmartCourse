@@ -143,7 +143,7 @@ export class Q1GenerationService {
             },
             {
                 overall: swotAnalysis.overallScore,
-                dimensions: swotAnalysis.dimensionScores,
+                dimensions: swotAnalysis.dimensionScores as unknown as Record<string, number>,
             }
         );
 

@@ -4,10 +4,12 @@ import { stageService } from "@/lib/stage";
 
 export async function POST(
     req: Request,
-    { params }: { params: { id: string; stageId: string } }
+    context: { params: Promise<{ id: string; stageId: string }> }
 ) {
     try {
         await connectDB();
+        // Next.js 15: params is a Promise, need to await it
+        const params = await context.params;
         await stageService.completeStage(params.id, params.stageId as any);
         const progress = await stageService.updateProgress(params.id);
         return NextResponse.json({ success: true, progress });

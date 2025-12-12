@@ -290,6 +290,12 @@ export default function StagePage() {
         throw new Error(data.error || "标记完成失败");
       }
       setStatusMessage("已标记完成");
+      // Dispatch event to notify sidebar to refresh progress
+      window.dispatchEvent(
+        new CustomEvent("stage-completed", {
+          detail: { stageId, projectId },
+        })
+      );
     } catch (error: any) {
       console.error("Complete stage failed:", error);
       setStatusMessage(error.message || "标记完成失败");
@@ -361,13 +367,13 @@ export default function StagePage() {
     // Create new AbortController for this generation
     const controller = new AbortController();
     setAbortController(controller);
+    let lastPayload: any = null;
+    let streamedContent = "";
 
     try {
       setIsGenerating(true);
       setStatusMessage("正在生成...");
       setDocContent("");
-      let lastPayload: any = null;
-      let streamedContent = "";
 
       const response = await fetch(
         `/api/project/${projectId}/stage/${stageId}/generate?stream=1`,
@@ -830,7 +836,9 @@ export default function StagePage() {
                             (doc?.content || "")
                               .split(/\n+/)
                               .map((s: string) => s.trim())
-                              .filter(Boolean)[0] || doc?.content || "";
+                              .filter(Boolean)[0] ||
+                            doc?.content ||
+                            "";
                           const chunkInfo =
                             doc?.metadata?.chunk_index !== undefined &&
                             doc?.metadata?.total_chunks

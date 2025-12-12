@@ -231,3 +231,4 @@ docker exec smartcourse-postgres pg_dump -U postgres smartcourse > postgres-back
 - [MongoDB Docker Hub](https://hub.docker.com/_/mongo)
 - [pgvector Docker Hub](https://hub.docker.com/r/pgvector/pgvector)
 
+

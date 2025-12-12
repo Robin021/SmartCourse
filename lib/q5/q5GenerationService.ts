@@ -20,6 +20,8 @@ export interface Q5GenerationRequest {
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
     user?: { id?: string; name?: string };
     useRag?: boolean;
+    stream?: boolean;
+    onToken?: (chunk: string) => void;
 }
 
 export interface Q5GenerationResult {
@@ -41,21 +43,40 @@ export class Q5GenerationService {
     }
 
     async generate(request: Q5GenerationRequest): Promise<Q5GenerationResult> {
-        const { projectId, formData: rawFormData, conversationHistory, user } = request;
+        const {
+            projectId,
+            formData: rawFormData,
+            conversationHistory,
+            user,
+            stream,
+            onToken,
+        } = request;
         const formData = normalizeQ5FormData(rawFormData);
 
         const previousContext = await stageService.getPreviousStagesContext(projectId, "Q5");
         const previousContextMap = this.toContextMap(previousContext);
 
         const generationInput = buildQ5GenerationInput(formData, previousContextMap);
-        const generationResult = await GenerationService.generate({
-            projectId,
-            stage: "Q5",
-            userInput: generationInput,
-            previousStagesContext: previousContextMap,
-            conversationHistory,
-            useRag: request.useRag ?? true,
-        });
+        const generationResult = stream
+            ? await GenerationService.generateStream(
+                  {
+                      projectId,
+                      stage: "Q5",
+                      userInput: generationInput,
+                      previousStagesContext: previousContextMap,
+                      conversationHistory,
+                      useRag: request.useRag ?? true,
+                  },
+                  { onToken }
+              )
+            : await GenerationService.generate({
+                  projectId,
+                  stage: "Q5",
+                  userInput: generationInput,
+                  previousStagesContext: previousContextMap,
+                  conversationHistory,
+                  useRag: request.useRag ?? true,
+              });
 
         const suitability = computeNameSuitability(formData, generationResult.ragResults.length);
         const keywords = extractQ5Keywords(generationResult.content, formData);

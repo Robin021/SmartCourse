@@ -20,6 +20,8 @@ export interface Q7GenerationRequest {
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
     user?: { id?: string; name?: string };
     useRag?: boolean;
+    stream?: boolean;
+    onToken?: (chunk: string) => void;
 }
 
 export interface Q7GenerationResult {
@@ -43,7 +45,14 @@ export class Q7GenerationService {
     }
 
     async generate(request: Q7GenerationRequest): Promise<Q7GenerationResult> {
-        const { projectId, formData: rawFormData, conversationHistory, user } = request;
+        const {
+            projectId,
+            formData: rawFormData,
+            conversationHistory,
+            user,
+            stream,
+            onToken,
+        } = request;
         const formData = normalizeQ7FormData(rawFormData);
 
         const previousContext = await stageService.getPreviousStagesContext(projectId, "Q7");
@@ -52,14 +61,26 @@ export class Q7GenerationService {
         const gapAnalysis = computeGapAnalysis(formData);
 
         const generationInput = buildQ7GenerationInput(formData, previousContextMap);
-        const generationResult = await GenerationService.generate({
-            projectId,
-            stage: "Q7",
-            userInput: generationInput,
-            previousStagesContext: previousContextMap,
-            conversationHistory,
-            useRag: request.useRag ?? true,
-        });
+        const generationResult = stream
+            ? await GenerationService.generateStream(
+                  {
+                      projectId,
+                      stage: "Q7",
+                      userInput: generationInput,
+                      previousStagesContext: previousContextMap,
+                      conversationHistory,
+                      useRag: request.useRag ?? true,
+                  },
+                  { onToken }
+              )
+            : await GenerationService.generate({
+                  projectId,
+                  stage: "Q7",
+                  userInput: generationInput,
+                  previousStagesContext: previousContextMap,
+                  conversationHistory,
+                  useRag: request.useRag ?? true,
+              });
 
         const keywords = extractQ7Keywords(generationResult.content, formData);
         const validation = this.contentValidator.validate(generationResult.content);

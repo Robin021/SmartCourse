@@ -4,7 +4,7 @@ import { stageService } from "@/lib/stage";
 
 export async function GET(
     req: Request,
-    context: { params: { id: string; stageId: string } | Promise<{ id: string; stageId: string }> }
+    context: { params: Promise<{ id: string; stageId: string }> }
 ) {
     try {
         await connectDB();
