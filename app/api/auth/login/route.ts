@@ -5,6 +5,11 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-key";
+// Allow overriding cookie secure flag for non-HTTPS environments (e.g., staging over HTTP)
+const COOKIE_SECURE =
+    process.env.COOKIE_SECURE !== undefined
+        ? process.env.COOKIE_SECURE !== "false" && process.env.COOKIE_SECURE !== "0"
+        : process.env.NODE_ENV === "production";
 
 export async function POST(req: Request) {
     try {
@@ -57,7 +62,7 @@ export async function POST(req: Request) {
 
         response.cookies.set("token", token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: COOKIE_SECURE,
             sameSite: "strict",
             maxAge: 86400, // 1 day
             path: "/",
