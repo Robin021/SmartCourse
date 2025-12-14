@@ -1,16 +1,5 @@
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
-console.log("Attempting to connect to MongoDB...");
-console.log("URI:", MONGODB_URI?.replace(/\/\/.*@/, "//***@")); // Log URI masking credentials
-
-if (!MONGODB_URI) {
-    throw new Error(
-        "Please define the MONGODB_URI environment variable inside .env.local"
-    );
-}
-
 interface MongooseCache {
     conn: typeof mongoose | null;
     promise: Promise<typeof mongoose> | null;
@@ -26,12 +15,25 @@ if (!cached) {
     cached = global.mongoose = { conn: null, promise: null };
 }
 
+const requireMongoUri = () => {
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+        throw new Error("Please define the MONGODB_URI environment variable inside .env.local");
+    }
+    return uri;
+};
+
 async function connectDB() {
     if (cached.conn) {
         return cached.conn;
     }
 
     if (!cached.promise) {
+        const MONGODB_URI = requireMongoUri();
+
+        console.log("Attempting to connect to MongoDB...");
+        console.log("URI:", MONGODB_URI.replace(/\/\/.*@/, "//***@")); // Log URI masking credentials
+
         const opts = {
             bufferCommands: false,
             // Fail fast if MongoDB isn't reachable to avoid hanging API requests
