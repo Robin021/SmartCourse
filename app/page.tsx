@@ -4,119 +4,126 @@ import type { ProjectSummary } from "@/components/dashboard/ProjectCard";
 import { cookies } from "next/headers";
 
 const getBaseUrl = () =>
-    process.env.NEXT_PUBLIC_BASE_URL?.trim() ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+  process.env.NEXT_PUBLIC_BASE_URL?.trim() ||
+  (process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000");
 
 const buildApiUrl = (path: string) => {
-    try {
-        return new URL(path, getBaseUrl()).toString();
-    } catch {
-        return `${getBaseUrl()}${path}`;
-    }
+  try {
+    return new URL(path, getBaseUrl()).toString();
+  } catch {
+    return `${getBaseUrl()}${path}`;
+  }
 };
 
 async function fetchProjects(): Promise<ProjectSummary[]> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
 
-    try {
-        const cookieStore = await cookies();
-        const cookieHeader = cookieStore
-            .getAll()
-            .map((c) => `${c.name}=${c.value}`)
-            .join("; ");
-        const res = await fetch(buildApiUrl("/api/projects"), {
-            cache: "no-store",
-            headers: cookieHeader ? { cookie: cookieHeader } : undefined,
-            signal: controller.signal,
-        });
-        if (!res.ok) {
-            return [];
-        }
-        if (!res.headers.get("content-type")?.includes("application/json")) {
-            return [];
-        }
-        const data = await res.json().catch(() => ({ projects: [] as unknown[] }));
-        const raw = Array.isArray((data as any).projects) ? (data as any).projects : [];
-
-        return raw.map((p: any): ProjectSummary => {
-            const updated =
-                typeof p?.updatedAt === "string"
-                    ? p.updatedAt
-                    : p?.updatedAt
-                      ? new Date(p.updatedAt).toISOString()
-                      : p?.updated_at
-                        ? new Date(p.updated_at).toISOString()
-                        : new Date().toISOString();
-
-            return {
-                _id: String(p?._id ?? ""),
-                name: String(p?.name ?? ""),
-                updatedAt: updated,
-                current_stage: String(p?.current_stage ?? "Q1"),
-                status: typeof p?.status === "string" ? p.status : undefined,
-            };
-        });
-    } catch (error) {
-        console.error("Error fetching projects:", error);
-        return [];
-    } finally {
-        clearTimeout(timeout);
+  try {
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore
+      .getAll()
+      .map((c) => `${c.name}=${c.value}`)
+      .join("; ");
+    const res = await fetch(buildApiUrl("/api/projects"), {
+      cache: "no-store",
+      headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      return [];
     }
+    if (!res.headers.get("content-type")?.includes("application/json")) {
+      return [];
+    }
+    const data = await res.json().catch(() => ({ projects: [] as unknown[] }));
+    const raw = Array.isArray((data as any).projects)
+      ? (data as any).projects
+      : [];
+
+    return raw.map((p: any): ProjectSummary => {
+      const updated =
+        typeof p?.updatedAt === "string"
+          ? p.updatedAt
+          : p?.updatedAt
+          ? new Date(p.updatedAt).toISOString()
+          : p?.updated_at
+          ? new Date(p.updated_at).toISOString()
+          : new Date().toISOString();
+
+      return {
+        _id: String(p?._id ?? ""),
+        name: String(p?.name ?? ""),
+        updatedAt: updated,
+        current_stage: String(p?.current_stage ?? "Q1"),
+        status: typeof p?.status === "string" ? p.status : undefined,
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching projects:", error);
+    return [];
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function fetchUser() {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
 
-    try {
-        const cookieStore = await cookies();
-        const cookieHeader = cookieStore
-            .getAll()
-            .map((c) => `${c.name}=${c.value}`)
-            .join("; ");
-        const res = await fetch(buildApiUrl("/api/auth/me"), {
-            cache: "no-store",
-            headers: cookieHeader ? { cookie: cookieHeader } : undefined,
-            signal: controller.signal,
-        });
-        if (!res.ok || !res.headers.get("content-type")?.includes("application/json")) {
-            return { full_name: "Teacher" };
-        }
-        const data = await res.json().catch(() => ({}));
-        return { full_name: data.user?.full_name || "Teacher" };
-    } catch {
-        return { full_name: "Teacher" };
-    } finally {
-        clearTimeout(timeout);
+  try {
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore
+      .getAll()
+      .map((c) => `${c.name}=${c.value}`)
+      .join("; ");
+    const res = await fetch(buildApiUrl("/api/auth/me"), {
+      cache: "no-store",
+      headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+      signal: controller.signal,
+    });
+    if (
+      !res.ok ||
+      !res.headers.get("content-type")?.includes("application/json")
+    ) {
+      return { full_name: "Teacher" };
     }
+    const data = await res.json().catch(() => ({}));
+    return { full_name: data.user?.full_name || "Teacher" };
+  } catch {
+    return { full_name: "Teacher" };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export default async function Home() {
-    const [projects, user] = await Promise.all([fetchProjects(), fetchUser()]);
+  const [projects, user] = await Promise.all([fetchProjects(), fetchUser()]);
 
-    return (
-        <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-            <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-                <DashboardHeader user={user} />
+  return (
+    <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <DashboardHeader user={user} />
 
-                {projects.length === 0 ? (
-                    <div className="flex h-64 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-white p-12 text-center dark:border-zinc-800 dark:bg-zinc-900/50">
-                        <h3 className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                            No projects
-                        </h3>
-                        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                            Get started by creating a new school plan.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {projects.map((project: ProjectSummary) => (
-                            <ProjectCard key={project._id} project={project} />
-                        ))}
-                    </div>
-                )}
-            </div>
-        </main>
-    );
+        {projects.length === 0 ? (
+          <div className="flex h-64 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-white p-12 text-center dark:border-zinc-800 dark:bg-zinc-900/50">
+            <h3 className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              No projects
+            </h3>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              Get started by creating a new school plan.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {projects.map((project: ProjectSummary) => (
+              <ProjectCard key={project._id} project={project} />
+            ))}
+          </div>
+        )}
+      </div>
+    </main>
+  );
 }

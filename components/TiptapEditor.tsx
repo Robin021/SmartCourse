@@ -176,7 +176,9 @@ export function TiptapEditor({
     });
 
     // Clean previously rendered chips or emoji markers back to [n]
-    const baseRaw = highlightSelection?.text ? highlightedContent : normalizedContent;
+    const baseRaw = highlightSelection?.text
+      ? highlightedContent
+      : normalizedContent;
     const cleanBase = baseRaw
       // remove previously injected citation-chip spans to avoid nested HTML
       .replace(
@@ -219,7 +221,9 @@ export function TiptapEditor({
         .replace(/&amp;/g, "&");
 
     const onMouseOver = (ev: MouseEvent) => {
-      const target = (ev.target as HTMLElement)?.closest(".citation-chip") as HTMLSpanElement | null;
+      const target = (ev.target as HTMLElement)?.closest(
+        ".citation-chip"
+      ) as HTMLSpanElement | null;
       if (!target) return;
       const rect = target.getBoundingClientRect();
       const label = decode(target.dataset.label || "引用");
@@ -241,7 +245,9 @@ export function TiptapEditor({
     };
 
     const onClick = (ev: MouseEvent) => {
-      const target = (ev.target as HTMLElement)?.closest(".citation-chip") as HTMLSpanElement | null;
+      const target = (ev.target as HTMLElement)?.closest(
+        ".citation-chip"
+      ) as HTMLSpanElement | null;
       if (!target) return;
       const refIdx = Number(target.dataset.ref) || 0;
       const ref = references?.[refIdx - 1];
@@ -249,7 +255,11 @@ export function TiptapEditor({
       const pos = clampPosition(rect.left + rect.width / 2, rect.bottom + 12);
       setActiveRef({
         visible: true,
-        label: decode(target.dataset.label || ref?.metadata?.original_name || `引用 ${refIdx}`),
+        label: decode(
+          target.dataset.label ||
+            ref?.metadata?.original_name ||
+            `引用 ${refIdx}`
+        ),
         content: ref?.content?.trim() || decode(target.dataset.snippet || ""),
         source: ref?.metadata?.source || ref?.source || "知识库",
         chunkInfo: decode(target.dataset.chunk || ""),
@@ -407,7 +417,9 @@ export function TiptapEditor({
               </div>
             </div>
             <button
-              onClick={() => setActiveRef((prev) => ({ ...prev, visible: false }))}
+              onClick={() =>
+                setActiveRef((prev) => ({ ...prev, visible: false }))
+              }
               className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
               aria-label="关闭引用卡片"
             >

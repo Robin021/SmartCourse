@@ -68,7 +68,11 @@ export function StageSidebar({ projectId }: { projectId: string }) {
   const sidebarWidth = collapsed ? "w-[78px]" : "w-72";
 
   const normalizeStatus = useCallback((status?: string): Stage["status"] => {
-    const upper = (status || "").toString().trim().toUpperCase().replace(/\s+/g, "_");
+    const upper = (status || "")
+      .toString()
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "_");
     if (upper === "COMPLETED") return "COMPLETED";
     if (upper === "IN_PROGRESS") return "IN_PROGRESS";
     if (upper === "LOCKED") return "LOCKED";
@@ -101,9 +105,7 @@ export function StageSidebar({ projectId }: { projectId: string }) {
       stageOrder.forEach((id, index) => {
         const apiStage = apiStageMap.get(id);
         const name =
-          apiStage?.name ||
-          defaultStages.find((s) => s.id === id)?.name ||
-          id;
+          apiStage?.name || defaultStages.find((s) => s.id === id)?.name || id;
 
         const baseStatus = normalizeStatus(apiStage?.status);
         const status =

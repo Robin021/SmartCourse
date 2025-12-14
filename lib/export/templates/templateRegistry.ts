@@ -293,3 +293,4 @@ export function getDefaultTemplate(): TemplateMetadata {
 export { recordTemplate, schoolResearchTemplate, generalTemplate };
 
 
+
