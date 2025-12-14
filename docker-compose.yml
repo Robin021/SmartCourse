@@ -60,6 +60,8 @@ services:
       POSTGRES_URL: postgresql://postgres:postgres123@postgres:5432/smartcourse
       # Next.js 环境
       NODE_ENV: development
+      # 允许在 HTTP 环境下测试登录（生产环境请设为 true 并使用 HTTPS）
+      COOKIE_SECURE: "false"
       # JWT 密钥（请在生产环境中修改）
       JWT_SECRET: your-secret-key-change-in-production
       NEXTAUTH_SECRET: your-nextauth-secret-change-in-production
@@ -112,6 +114,5 @@ volumes:
 networks:
   smartcourse-network:
     driver: bridge
-
 
 
