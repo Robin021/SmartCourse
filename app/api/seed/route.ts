@@ -533,20 +533,33 @@ export async function GET() {
     try {
         await connectDB();
 
+        const demoPassword = "password";
+        const demoPasswordHash = await bcrypt.hash(demoPassword, 10);
+
         // 1. Create Demo User
         const email = "teacher@demo.com";
         const existingUser = await User.findOne({ email });
 
         if (!existingUser) {
-            const password_hash = await bcrypt.hash("password", 10);
             await User.create({
                 email,
-                password_hash,
+                password_hash: demoPasswordHash,
                 full_name: "Demo Teacher",
                 role: "TEACHER",
                 tenant_id: "bureau_01",
                 school_id: "school_01",
             });
+        } else {
+            const matches = await bcrypt.compare(
+                demoPassword,
+                existingUser.password_hash
+            );
+            if (!matches) {
+                await User.updateOne(
+                    { _id: existingUser._id },
+                    { $set: { password_hash: demoPasswordHash } }
+                );
+            }
         }
 
         // 1.1 Create Demo Admin
@@ -554,15 +567,25 @@ export async function GET() {
         const existingAdmin = await User.findOne({ email: adminEmail });
 
         if (!existingAdmin) {
-            const password_hash = await bcrypt.hash("password", 10);
             await User.create({
                 email: adminEmail,
-                password_hash,
+                password_hash: demoPasswordHash,
                 full_name: "System Admin",
                 role: "SYSTEM_ADMIN",
                 tenant_id: "bureau_01",
                 school_id: "school_01",
             });
+        } else {
+            const matches = await bcrypt.compare(
+                demoPassword,
+                existingAdmin.password_hash
+            );
+            if (!matches) {
+                await User.updateOne(
+                    { _id: existingAdmin._id },
+                    { $set: { password_hash: demoPasswordHash } }
+                );
+            }
         }
 
         // 2. Create or Update Stage Config
