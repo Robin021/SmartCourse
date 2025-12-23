@@ -387,7 +387,7 @@ export async function renderPdfBundle(projectName: string, sections: StageExport
     // Title Page
     doc.fontSize(24).font(headingFont).text(projectName, { align: "center" });
     doc.moveDown();
-    doc.fontSize(16).text("课程设计导出报告", { align: "center", color: "#6B7280" });
+    doc.fontSize(16).fillColor("#6B7280").text("课程设计导出报告", { align: "center" });
     doc.addPage();
 
     const getSection = (id: string) => sections.find(s => s.stageId === id || s.stageId.startsWith(id + " "));

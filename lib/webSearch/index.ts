@@ -34,6 +34,16 @@ export interface WebSearchRequest {
     formData?: Record<string, any>;
 }
 
+type SerperOrganicResult = {
+    link?: string;
+    url?: string;
+    title?: string;
+    name?: string;
+    snippet?: string;
+    description?: string;
+    date?: string;
+};
+
 const DEFAULT_CONFIG: WebSearchConfig = {
     enabled: false,
     serper_api_key: "",
@@ -207,7 +217,7 @@ const serperSearch = async (
     query: string,
     config: WebSearchConfig,
     topK: number
-) => {
+): Promise<SerperOrganicResult[]> => {
     if (!config.serper_api_key) {
         throw new Error("Serper API key is missing");
     }
@@ -375,8 +385,8 @@ export async function runWebSearch(
     const topK = normalizeMaxK(request.topK, config.max_k);
     const organicResults = await serperSearch(query, config, topK);
 
-    const normalized = organicResults
-        .map((item: any, idx: number) => {
+    const normalized: WebSearchResult[] = organicResults
+        .map((item: SerperOrganicResult, idx: number): WebSearchResult => {
             const url = item.link || item.url || "";
             const title = item.title || item.name || url;
             const snippet = item.snippet || item.description || "";
@@ -402,7 +412,7 @@ export async function runWebSearch(
                     domain,
                     published_at: item.date || "",
                 },
-            } as WebSearchResult;
+            };
         })
         .filter((item) => item.url && item.title);
 

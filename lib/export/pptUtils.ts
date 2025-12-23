@@ -78,7 +78,7 @@ export async function renderPptBundle(projectName: string, sections: StageExport
             slideTable.addText(`${section.stageId} 关键信息`, { x: 0.5, y: 0.5, fontSize: 18, bold: true });
 
             const tableData = section.tableRows.map(row => [
-                { text: row.key, options: { bold: true, fill: "F9FAFB" } },
+                { text: row.key, options: { bold: true, fill: { color: "F9FAFB" } } },
                 { text: row.value || "—" }
             ]);
 

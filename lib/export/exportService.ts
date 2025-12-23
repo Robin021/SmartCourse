@@ -92,9 +92,9 @@ export async function buildExportBundle(options: ExportOptions): Promise<{ filen
 
         // Prepare table rows (keywords, or specific fields)
         const tableRows: { key: string; value: string }[] = [];
-        if (stageData.data) {
+        if (stageData.input) {
             // Simple flatten of data for now, or use specific logic per stage
-            Object.entries(stageData.data).forEach(([k, v]) => {
+            Object.entries(stageData.input).forEach(([k, v]) => {
                 if (typeof v === 'string' && v.length < 100) { // arbitrary limit for key info
                     tableRows.push({ key: k, value: v });
                 } else if (Array.isArray(v)) {
@@ -124,8 +124,8 @@ export async function buildExportBundle(options: ExportOptions): Promise<{ filen
             description: stageConfig?.description,
             status: stageData.status,
             content: content,
-            keywords: stageData.keywords,
-            score: stageData.score,
+            keywords: stageData.output?.keywords,
+            score: stageData.diagnostic_score?.overall,
             tableRows
         });
     }

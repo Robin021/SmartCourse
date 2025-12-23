@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
-import SystemConfig from "@/models/SystemConfig";
+import SystemConfig, { IWebSearchConfig } from "@/models/SystemConfig";
 
 const MASKED_VALUE = "********";
 const SERPER_ENDPOINT = "https://google.serper.dev/search";
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
 
         await connectDB();
         const config = await SystemConfig.findOne().sort({ createdAt: -1 });
-        const stored = config?.web_search || {};
+        const stored = (config?.web_search || {}) as Partial<IWebSearchConfig>;
 
         const serperKey = resolveKey(incoming.serper_api_key, stored.serper_api_key);
         const firecrawlKey = resolveKey(
