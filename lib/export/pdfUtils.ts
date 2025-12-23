@@ -418,15 +418,6 @@ export async function renderPdfBundle(projectName: string, sections: StageExport
             });
             doc.moveDown(2);
 
-            // Key Info Table
-            if (section.tableRows?.length) {
-                doc.fontSize(12).font(headingFont).fillColor("#111827").text("关键信息表");
-                doc.moveDown(0.5);
-                section.tableRows.forEach(row => {
-                    doc.fontSize(10).font(bodyFont).fillColor("#374151").text(`${row.key}: ${row.value || "—"}`);
-                });
-                doc.moveDown(2);
-            }
         }
     }
 

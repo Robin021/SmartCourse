@@ -72,25 +72,6 @@ export async function renderPptBundle(projectName: string, sections: StageExport
             });
         }
 
-        // Key Info Table if exists
-        if (section.tableRows?.length) {
-            const slideTable = pptx.addSlide();
-            slideTable.addText(`${section.stageId} 关键信息`, { x: 0.5, y: 0.5, fontSize: 18, bold: true });
-
-            const tableData = section.tableRows.map(row => [
-                { text: row.key, options: { bold: true, fill: { color: "F9FAFB" } } },
-                { text: row.value || "—" }
-            ]);
-
-            slideTable.addTable(tableData, {
-                x: 0.5,
-                y: 1.5,
-                w: 9.0,
-                colW: [2.5, 6.5],
-                border: { pt: 1, color: "E5E7EB" },
-                fontSize: 10
-            });
-        }
     });
 
     // We need to return a Buffer. usage with nodebuffer

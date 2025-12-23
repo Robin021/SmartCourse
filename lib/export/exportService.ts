@@ -167,12 +167,6 @@ async function renderBundleInternal(
                 if (s.score !== undefined) text += `**评分**: ${s.score}\n`;
                 if (s.keywords?.length) text += `**关键词**: ${s.keywords.join(", ")}\n`;
                 text += "\n" + (s.content || "（无生成内容）") + "\n";
-                if (s.tableRows?.length) {
-                    text += "\n### 关键信息表\n";
-                    s.tableRows.forEach(row => {
-                        text += `- ${row.key}: ${row.value || "—"}\n`;
-                    });
-                }
                 return text;
             })
             .join("\n---\n\n");
@@ -435,20 +429,6 @@ async function renderDocxBundle(projectName: string, sections: StageExportSectio
             const contentParagraphs = await docxParagraphsFromMarkdown(section.content);
             children.push(...contentParagraphs);
 
-            // Render Key Info Table
-            if (section.tableRows?.length) {
-                children.push(new Paragraph({ text: "关键信息表", heading: HeadingLevel.HEADING_3 }));
-                section.tableRows.forEach((row) => {
-                    children.push(
-                        new Paragraph({
-                            children: [
-                                new TextRun({ text: `${row.key}: `, bold: true }),
-                                new TextRun({ text: row.value || "—" }),
-                            ],
-                        })
-                    );
-                });
-            }
         }
     }
 
