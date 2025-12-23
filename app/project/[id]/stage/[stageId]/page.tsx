@@ -8,6 +8,7 @@ import {
   BookOpen,
   CheckCircle2,
   History,
+  Globe,
   MessageSquare,
   Save,
   Sparkles,
@@ -71,6 +72,7 @@ export default function StagePage() {
   const [abortController, setAbortController] =
     useState<AbortController | null>(null);
   const [ragDocs, setRagDocs] = useState<any[]>([]);
+  const [webDocs, setWebDocs] = useState<any[]>([]);
   const [showRag, setShowRag] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -80,6 +82,24 @@ export default function StagePage() {
   const [isFormCollapsed, setIsFormCollapsed] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [useRag, setUseRag] = useState(false);
+  const [useWeb, setUseWeb] = useState(false);
+  const [includeCitations, setIncludeCitations] = useState(true);
+  const [isFilling, setIsFilling] = useState(false);
+  const [showFillPanel, setShowFillPanel] = useState(false);
+  const [fillSuggestions, setFillSuggestions] = useState<Record<string, any>>(
+    {}
+  );
+  const [fillSelections, setFillSelections] = useState<Record<string, boolean>>(
+    {}
+  );
+  const [fillNotes, setFillNotes] = useState("");
+  const [fillError, setFillError] = useState<string | null>(null);
+  const [fillOverwrite, setFillOverwrite] = useState(false);
+
+  const combinedReferences = useMemo(
+    () => [...ragDocs, ...webDocs],
+    [ragDocs, webDocs]
+  );
 
   const schema = useMemo(() => {
     if (stageId === "Q1") return Q1_FORM_SCHEMA;
@@ -94,6 +114,48 @@ export default function StagePage() {
     if (stageId === "Q10") return Q10_FORM_SCHEMA;
     return Q1_FORM_SCHEMA;
   }, [stageId]);
+
+  const schemaFields = useMemo(() => {
+    const fields: Array<{
+      key: string;
+      label: string;
+      type: string;
+      required?: boolean;
+      options?: Array<{ value: string; label: string }>;
+    }> = [];
+    (schema?.sections || []).forEach((section: any) => {
+      (section.fields || []).forEach((field: any) => {
+        fields.push({
+          key: field.key,
+          label: field.label,
+          type: field.type,
+          required: field.required,
+          options: Array.isArray(field.options)
+            ? field.options.map((opt: any) => ({
+              value: opt.value ?? opt,
+              label: opt.label ?? opt,
+            }))
+            : undefined,
+        });
+      });
+    });
+    return fields;
+  }, [schema]);
+
+  const fieldMeta = useMemo(() => {
+    const map = new Map<
+      string,
+      { label: string; type: string; required?: boolean }
+    >();
+    schemaFields.forEach((field) => {
+      map.set(field.key, {
+        label: field.label,
+        type: field.type,
+        required: field.required,
+      });
+    });
+    return map;
+  }, [schemaFields]);
 
   // 抽取加载阶段数据的函数，供初始化和回滚后复用
   const loadStageData = async (resetState = true) => {
@@ -117,7 +179,14 @@ export default function StagePage() {
       setCoverage({});
       setSuggestions([]);
       setRagDocs([]);
+      setWebDocs([]);
       setShowRag(false);
+      setShowFillPanel(false);
+      setFillSuggestions({});
+      setFillSelections({});
+      setFillNotes("");
+      setFillError(null);
+      setFillOverwrite(false);
     }
     setIsLoadingStage(true);
 
@@ -148,13 +217,15 @@ export default function StagePage() {
           setCoverage(output.coverage.dimensions);
         if (Array.isArray(output.suggestions))
           setSuggestions(output.suggestions);
-        if (Array.isArray((output as any).rag_results)) {
-          setRagDocs((output as any).rag_results);
-          setShowRag((output as any).rag_results.length > 0);
-        } else {
-          setRagDocs([]);
-          setShowRag(false);
-        }
+        const ragResults = Array.isArray((output as any).rag_results)
+          ? (output as any).rag_results
+          : [];
+        const webResults = Array.isArray((output as any).web_results)
+          ? (output as any).web_results
+          : [];
+        setRagDocs(ragResults);
+        setWebDocs(webResults);
+        setShowRag(ragResults.length + webResults.length > 0);
         if (output.consistency?.score !== undefined)
           setConsistency(output.consistency.score);
         if (output.gapAnalysis?.score !== undefined)
@@ -216,6 +287,21 @@ export default function StagePage() {
     setFormData((prev: any) => ({ ...prev, [key]: value }));
   };
 
+  const isEmptyValue = (value: any) => {
+    if (value === null || value === undefined) return true;
+    if (Array.isArray(value)) return value.length === 0;
+    if (typeof value === "string") return value.trim().length === 0;
+    return false;
+  };
+
+  const formatSuggestionValue = (value: any) => {
+    if (Array.isArray(value)) {
+      return value.join("、");
+    }
+    if (value === null || value === undefined) return "";
+    return String(value);
+  };
+
   const handleApplySelection = (replacement: string) => {
     if (!selection) {
       setDocContent(replacement);
@@ -229,10 +315,10 @@ export default function StagePage() {
     setSelection((prev) =>
       prev
         ? {
-            text: replacement,
-            start: prev.start,
-            end: prev.start + replacement.length,
-          }
+          text: replacement,
+          start: prev.start,
+          end: prev.start + replacement.length,
+        }
         : null
     );
   };
@@ -325,27 +411,31 @@ export default function StagePage() {
     }
   };
 
+  const getDefaultQuery = () =>
+    stageId === "Q1"
+      ? "学校课程情境 SWOT 教育资源"
+      : stageId === "Q2"
+        ? "教育哲学 本地化"
+        : stageId === "Q3"
+          ? "办学理念 核心概念"
+          : stageId === "Q4"
+            ? "育人目标 五育并举"
+            : stageId === "Q5"
+              ? "课程命名 校本课程"
+              : stageId === "Q6"
+                ? "课程理念 价值取向"
+                : stageId === "Q7"
+                  ? "分学段课程目标 案例"
+                  : stageId === "Q8"
+                    ? "课程结构 模块映射"
+                    : stageId === "Q9"
+                      ? "课程实施 路径/研学/节庆"
+                      : "课程评价 335 成长体系 项目化评价";
+
   const handleRagSearch = async () => {
     try {
       setShowRag(true);
-      const defaultQuery =
-        stageId === "Q2"
-          ? "教育哲学 本地化"
-          : stageId === "Q3"
-          ? "办学理念 核心概念"
-          : stageId === "Q4"
-          ? "育人目标 五育并举"
-          : stageId === "Q5"
-          ? "课程命名 校本课程"
-          : stageId === "Q6"
-          ? "课程理念 价值取向"
-          : stageId === "Q7"
-          ? "分学段课程目标 案例"
-          : stageId === "Q8"
-          ? "课程结构 模块映射"
-          : stageId === "Q9"
-          ? "课程实施 路径/研学/节庆"
-          : "课程评价 335 成长体系 项目化评价";
+      const defaultQuery = getDefaultQuery();
       const res = await fetch(
         `/api/project/${projectId}/stage/${stageId}/rag/search`,
         {
@@ -356,11 +446,129 @@ export default function StagePage() {
       );
       const data = await res.json();
       if (data.success) {
-        setRagDocs(data.results);
+        const nextRag = Array.isArray(data.results) ? data.results : [];
+        setRagDocs(nextRag);
+        setShowRag(nextRag.length + webDocs.length > 0);
+        return nextRag;
       }
     } catch (error) {
       console.error("RAG Search failed:", error);
     }
+    return [];
+  };
+
+  const handleWebSearch = async () => {
+    try {
+      if (stageId === "Q1" && isEmptyValue(formData.school_name)) {
+        const message = "请先填写学校名称后再进行网络搜索";
+        setStatusMessage(message);
+        setFillError(message);
+        return [];
+      }
+      setShowRag(true);
+      const defaultQuery = getDefaultQuery();
+      const res = await fetch(
+        `/api/project/${projectId}/stage/${stageId}/web/search`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: defaultQuery,
+            formData,
+            fetch_content: true,
+          }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Web search failed");
+      }
+      const nextWeb = Array.isArray(data.results) ? data.results : [];
+      setWebDocs(nextWeb);
+      setShowRag(ragDocs.length + nextWeb.length > 0);
+      return nextWeb;
+    } catch (error: any) {
+      console.error("Web Search failed:", error);
+      setStatusMessage(error.message || "网络搜索失败");
+    }
+    return [];
+  };
+
+  const handleAiFill = async () => {
+    try {
+      if (stageId === "Q1" && isEmptyValue(formData.school_name)) {
+        const message = "请先填写学校名称后再进行 AI 填写";
+        setFillError(message);
+        setStatusMessage(message);
+        return;
+      }
+      const hasEmptyField = schemaFields.some((field) =>
+        isEmptyValue(formData[field.key])
+      );
+      if (!hasEmptyField && !fillOverwrite) {
+        const message = "当前表单已填写完成，如需优化请勾选覆盖已有内容";
+        setFillError(message);
+        setStatusMessage(message);
+        return;
+      }
+      setIsFilling(true);
+      setFillError(null);
+      setFillNotes("");
+
+      let nextWeb = webDocs;
+      if (nextWeb.length === 0) {
+        nextWeb = await handleWebSearch();
+      }
+
+      const res = await fetch(
+        `/api/project/${projectId}/stage/${stageId}/assist/fill`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            formData,
+            schemaFields,
+            references: nextWeb,
+            mode: fillOverwrite ? "overwrite" : "suggest",
+          }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "AI 填写失败");
+      }
+
+      const suggestions = data.suggestions || {};
+      const selections: Record<string, boolean> = {};
+      Object.keys(suggestions).forEach((key) => {
+        selections[key] = isEmptyValue(formData[key]);
+      });
+      setFillSuggestions(suggestions);
+      setFillSelections(selections);
+      setFillNotes(data.notes || "");
+      setShowFillPanel(true);
+      setStatusMessage("已生成表单填写建议");
+    } catch (error: any) {
+      console.error("AI Fill failed:", error);
+      setFillError(error.message || "AI 填写失败");
+      setStatusMessage(error.message || "AI 填写失败");
+    } finally {
+      setIsFilling(false);
+    }
+  };
+
+  const applyFillSuggestions = () => {
+    setFormData((prev) => {
+      const next = { ...prev };
+      Object.entries(fillSuggestions).forEach(([key, value]) => {
+        if (!fillSelections[key]) return;
+        if (!fillOverwrite && !isEmptyValue(prev[key])) return;
+        next[key] = value;
+      });
+      return next;
+    });
+    setShowFillPanel(false);
+    setStatusMessage("已应用表单建议");
   };
 
   const handleAiAssist = async () => {
@@ -383,7 +591,7 @@ export default function StagePage() {
             "Content-Type": "application/json",
             Accept: "text/event-stream",
           },
-          body: JSON.stringify({ formData, useRag }),
+          body: JSON.stringify({ formData, useRag, useWeb, includeCitations }),
           signal: controller.signal,
         }
       );
@@ -435,9 +643,16 @@ export default function StagePage() {
         if (data.coverage?.dimensions) setCoverage(data.coverage.dimensions);
         else setCoverage({});
         setSuggestions(data.suggestions || []);
-        if (Array.isArray(data.ragResults)) {
-          setRagDocs(data.ragResults);
-          setShowRag(useRag && data.ragResults.length > 0);
+        const nextRag = Array.isArray(data.ragResults)
+          ? data.ragResults
+          : ragDocs;
+        const nextWeb = Array.isArray(data.webResults)
+          ? data.webResults
+          : webDocs;
+        if (Array.isArray(data.ragResults)) setRagDocs(nextRag);
+        if (Array.isArray(data.webResults)) setWebDocs(nextWeb);
+        if (useRag || useWeb) {
+          setShowRag(nextRag.length + nextWeb.length > 0);
         }
       };
 
@@ -549,11 +764,10 @@ export default function StagePage() {
                 <Link
                   key={stage.id}
                   href={`/project/${projectId}/stage/${stage.id}`}
-                  className={`group inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-all ${
-                    active
-                      ? "border-cyan-500/70 bg-gradient-to-r from-cyan-500/20 to-emerald-400/20 text-slate-900 shadow-sm dark:text-white"
-                      : "border-slate-200 bg-white/70 text-slate-600 hover:border-cyan-200 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-cyan-500/40"
-                  }`}
+                  className={`group inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-all ${active
+                    ? "border-cyan-500/70 bg-gradient-to-r from-cyan-500/20 to-emerald-400/20 text-slate-900 shadow-sm dark:text-white"
+                    : "border-slate-200 bg-white/70 text-slate-600 hover:border-cyan-200 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-cyan-500/40"
+                    }`}
                 >
                   <span className="rounded-full bg-slate-900/5 px-2 py-0.5 text-xs font-semibold text-slate-700 dark:bg-white/10 dark:text-white/80">
                     {stage.id}
@@ -599,6 +813,29 @@ export default function StagePage() {
                   有量化数据更佳
                 </span>
               </div>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <button
+                  onClick={handleAiFill}
+                  disabled={isFilling || isLoadingStage}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50/70 px-3 py-2 text-xs font-semibold text-indigo-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-indigo-900/40 dark:bg-indigo-900/30 dark:text-indigo-200 dark:hover:border-indigo-700"
+                  type="button"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {isFilling ? "填写中..." : "AI 填写表单"}
+                </button>
+                <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={fillOverwrite}
+                    onChange={(e) => setFillOverwrite(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-200 dark:border-slate-600 dark:bg-slate-900 dark:checked:border-cyan-500"
+                  />
+                  覆盖已有内容
+                </label>
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  使用网络搜索生成草稿，用户可自行修改
+                </span>
+              </div>
               <div className="mt-5 rounded-xl border border-slate-200 bg-white/80 shadow-inner dark:border-slate-800 dark:bg-slate-900/70">
                 <div className="max-h-none overflow-visible rounded-xl md:max-h-[calc(100vh-280px)] md:overflow-y-auto">
                   <DynamicFormRenderer
@@ -639,6 +876,24 @@ export default function StagePage() {
                       onChange={(e) => setUseRag(e.target.checked)}
                     />
                     使用知识库
+                  </label>
+                  <label className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-200 dark:border-slate-600 dark:bg-slate-900 dark:checked:border-cyan-500"
+                      checked={useWeb}
+                      onChange={(e) => setUseWeb(e.target.checked)}
+                    />
+                    使用网络搜索
+                  </label>
+                  <label className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-200 dark:border-slate-600 dark:bg-slate-900 dark:checked:border-cyan-500"
+                      checked={includeCitations}
+                      onChange={(e) => setIncludeCitations(e.target.checked)}
+                    />
+                    包含引用
                   </label>
                   <button
                     onClick={handleSaveInput}
@@ -681,6 +936,14 @@ export default function StagePage() {
                   >
                     <BookOpen className="h-4 w-4" />
                     检索知识库
+                  </button>
+                  <button
+                    onClick={handleWebSearch}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-xs font-semibold text-emerald-700 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-900/30 dark:text-emerald-200 dark:hover:border-emerald-700"
+                    type="button"
+                  >
+                    <Globe className="h-4 w-4" />
+                    网络搜索
                   </button>
                   {isGenerating ? (
                     <button
@@ -796,7 +1059,7 @@ export default function StagePage() {
                     onAiAssist={handleAiAssist}
                     onSelectionChange={setSelection}
                     highlightSelection={selection}
-                    references={ragDocs}
+                    references={combinedReferences}
                   />
                 </div>
 
@@ -818,12 +1081,12 @@ export default function StagePage() {
                       </button>
                     </div>
                     <div className="space-y-3 text-xs text-slate-600 dark:text-slate-200">
-                      {ragDocs.length === 0 ? (
+                      {combinedReferences.length === 0 ? (
                         <div className="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-center text-slate-500 dark:border-slate-700 dark:text-slate-400">
                           暂无结果
                         </div>
                       ) : (
-                        ragDocs.map((doc, idx) => {
+                        combinedReferences.map((doc, idx) => {
                           const fileName =
                             doc?.metadata?.original_name ||
                             doc?.title ||
@@ -841,10 +1104,9 @@ export default function StagePage() {
                             "";
                           const chunkInfo =
                             doc?.metadata?.chunk_index !== undefined &&
-                            doc?.metadata?.total_chunks
-                              ? `片段 ${doc.metadata.chunk_index + 1}/${
-                                  doc.metadata.total_chunks
-                                }`
+                              doc?.metadata?.total_chunks
+                              ? `片段 ${doc.metadata.chunk_index + 1}/${doc.metadata.total_chunks
+                              }`
                               : null;
                           return (
                             <div
@@ -893,6 +1155,102 @@ export default function StagePage() {
           </section>
         </div>
       </div>
+
+      {showFillPanel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+          <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                AI 填写建议
+              </h3>
+              <button
+                onClick={() => setShowFillPanel(false)}
+                className="rounded border px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                type="button"
+              >
+                关闭
+              </button>
+            </div>
+            {fillNotes ? (
+              <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200">
+                {fillNotes}
+              </div>
+            ) : null}
+            {fillError ? (
+              <div className="mt-2 text-xs text-red-600">{fillError}</div>
+            ) : null}
+            <div className="mt-3 max-h-80 space-y-3 overflow-y-auto pr-1 text-xs text-slate-600 dark:text-slate-200">
+              {Object.keys(fillSuggestions).length === 0 ? (
+                <div className="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-center text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                  暂无可填建议
+                </div>
+              ) : (
+                Object.entries(fillSuggestions).map(([key, value]) => {
+                  const meta = fieldMeta.get(key);
+                  const label = meta?.label || key;
+                  const currentValue = formData[key];
+                  const hasCurrent = !isEmptyValue(currentValue);
+                  return (
+                    <div
+                      key={key}
+                      className="rounded-xl border border-slate-200/90 bg-white px-3 py-3 shadow-sm ring-1 ring-slate-100/70 dark:border-slate-700/80 dark:bg-slate-800/70 dark:ring-slate-900/50"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-100">
+                          <input
+                            type="checkbox"
+                            checked={!!fillSelections[key]}
+                            onChange={(e) =>
+                              setFillSelections((prev) => ({
+                                ...prev,
+                                [key]: e.target.checked,
+                              }))
+                            }
+                            className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-200 dark:border-slate-600 dark:bg-slate-900 dark:checked:border-cyan-500"
+                          />
+                          {label}
+                        </label>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500 dark:bg-slate-900 dark:text-slate-300">
+                          {key}
+                        </span>
+                      </div>
+                      <div className="mt-2 text-[13px] leading-relaxed text-slate-700 dark:text-slate-200">
+                        建议：{formatSuggestionValue(value) || "（空）"}
+                      </div>
+                      {hasCurrent ? (
+                        <div className="mt-1 text-[11px] text-slate-400">
+                          当前：{formatSuggestionValue(currentValue)}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                已选择 {Object.values(fillSelections).filter(Boolean).length} 项
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowFillPanel(false)}
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm hover:border-slate-300 dark:border-slate-700 dark:text-slate-200"
+                  type="button"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={applyFillSuggestions}
+                  className="rounded-lg border border-cyan-200 bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-cyan-600"
+                  type="button"
+                >
+                  应用选中
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showVersions && (
         <div className="fixed right-4 top-20 z-50 flex max-h-[82vh] w-80 max-w-[90vw] flex-col rounded-2xl border bg-card p-3 text-card-foreground shadow-2xl sm:w-96">

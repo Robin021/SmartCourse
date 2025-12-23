@@ -18,7 +18,7 @@ export async function POST(
     const { id: projectId, stageId } = await context.params;
 
     try {
-        const { formData, conversationHistory, useRag } = await req.json();
+        const { formData, conversationHistory, useRag, useWeb, includeCitations } = await req.json();
         const { searchParams } = new URL(req.url);
         const shouldStream = searchParams.get("stream") === "1";
         await connectDB();
@@ -30,6 +30,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    useWeb,
+                    includeCitations: includeCitations ?? true,
                     stream: shouldStream,
                     onToken,
                 });
@@ -39,6 +41,7 @@ export async function POST(
                     swotAnalysis: result.swotAnalysis,
                     validation: result.validation,
                     ragResults: result.ragResults,
+                    webResults: result.webResults,
                     metadata: result.metadata,
                 };
             }
@@ -49,6 +52,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    useWeb,
+                    includeCitations: includeCitations ?? true,
                     stream: shouldStream,
                     onToken,
                 });
@@ -58,6 +63,7 @@ export async function POST(
                     keywords: result.keywords,
                     theoryFitScore: result.theoryFitScore,
                     ragResults: result.ragResults,
+                    webResults: result.webResults,
                     validation: result.validation,
                     metadata: result.metadata,
                 };
@@ -69,6 +75,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    useWeb,
+                    includeCitations: includeCitations ?? true,
                     stream: shouldStream,
                     onToken,
                 });
@@ -80,6 +88,7 @@ export async function POST(
                     positive: result.positive,
                     suggestions: result.suggestions,
                     ragResults: result.ragResults,
+                    webResults: result.webResults,
                     metadata: result.metadata,
                 };
             }
@@ -90,6 +99,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    useWeb,
+                    includeCitations: includeCitations ?? true,
                     stream: shouldStream,
                     onToken,
                 });
@@ -100,6 +111,7 @@ export async function POST(
                     coverage: result.coverage,
                     suggestions: result.validation.suggestions,
                     ragResults: result.ragResults,
+                    webResults: result.webResults,
                     metadata: result.metadata,
                 };
             }
@@ -110,6 +122,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    useWeb,
+                    includeCitations: includeCitations ?? true,
                     stream: shouldStream,
                     onToken,
                 });
@@ -122,6 +136,7 @@ export async function POST(
                     suitability: result.suitability,
                     suggestions: result.validation.suggestions,
                     ragResults: result.ragResults,
+                    webResults: result.webResults,
                     metadata: result.metadata,
                 };
             }
@@ -132,6 +147,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    useWeb,
+                    includeCitations: includeCitations ?? true,
                     stream: shouldStream,
                     onToken,
                 });
@@ -142,6 +159,7 @@ export async function POST(
                     consistency: result.consistency,
                     suggestions: result.validation.suggestions,
                     ragResults: result.ragResults,
+                    webResults: result.webResults,
                     metadata: result.metadata,
                 };
             }
@@ -152,6 +170,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    useWeb,
+                    includeCitations: includeCitations ?? true,
                     stream: shouldStream,
                     onToken,
                 });
@@ -162,6 +182,7 @@ export async function POST(
                     gapAnalysis: result.gapAnalysis,
                     suggestions: result.validation.suggestions,
                     ragResults: result.ragResults,
+                    webResults: result.webResults,
                     metadata: result.metadata,
                 };
             }
@@ -172,6 +193,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    useWeb,
+                    includeCitations: includeCitations ?? true,
                     stream: shouldStream,
                     onToken,
                 });
@@ -182,6 +205,7 @@ export async function POST(
                     structureScore: result.structureScore,
                     suggestions: result.validation.suggestions,
                     ragResults: result.ragResults,
+                    webResults: result.webResults,
                     metadata: result.metadata,
                 };
             }
@@ -192,6 +216,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    useWeb,
+                    includeCitations: includeCitations ?? true,
                     stream: shouldStream,
                     onToken,
                 });
@@ -202,6 +228,7 @@ export async function POST(
                     feasibility: result.feasibility,
                     suggestions: result.validation.suggestions,
                     ragResults: result.ragResults,
+                    webResults: result.webResults,
                     metadata: result.metadata,
                 };
             }
@@ -212,6 +239,8 @@ export async function POST(
                     formData: formData || {},
                     conversationHistory,
                     useRag,
+                    useWeb,
+                    includeCitations: includeCitations ?? true,
                     stream: shouldStream,
                     onToken,
                 });
@@ -222,6 +251,7 @@ export async function POST(
                     evaluationScore: result.evaluationScore,
                     suggestions: result.validation.suggestions,
                     ragResults: result.ragResults,
+                    webResults: result.webResults,
                     metadata: result.metadata,
                 };
             }
@@ -251,9 +281,9 @@ export async function POST(
 
                         const onToken = shouldStream
                             ? (chunk: string) => {
-                                  resetTimeout();
-                                  send({ event: "token", content: chunk });
-                              }
+                                resetTimeout();
+                                send({ event: "token", content: chunk });
+                            }
                             : undefined;
 
                         resetTimeout();

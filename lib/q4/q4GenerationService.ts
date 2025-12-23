@@ -20,6 +20,8 @@ export interface Q4GenerationRequest {
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
     user?: { id?: string; name?: string };
     useRag?: boolean;
+    useWeb?: boolean;
+    includeCitations?: boolean;  // Whether to include citations in output
     stream?: boolean;
     onToken?: (chunk: string) => void;
 }
@@ -33,6 +35,7 @@ export interface Q4GenerationResult {
         suggestions: string[];
     };
     ragResults: any[];
+    webResults: any[];
     validation: {
         isValid: boolean;
         suggestions: string[];
@@ -57,6 +60,7 @@ export class Q4GenerationService {
             formData: rawFormData,
             conversationHistory,
             user,
+            includeCitations,
             stream,
             onToken,
         } = request;
@@ -70,24 +74,28 @@ export class Q4GenerationService {
         const generationInput = buildQ4GenerationInput(formData, previousContextMap);
         const generationResult = stream
             ? await GenerationService.generateStream(
-                  {
-                      projectId,
-                      stage: "Q4",
-                      userInput: generationInput,
-                      previousStagesContext: previousContextMap,
-                      conversationHistory,
-                      useRag: request.useRag ?? true,
-                  },
-                  { onToken }
-              )
+                {
+                    projectId,
+                    stage: "Q4",
+                    userInput: generationInput,
+                    previousStagesContext: previousContextMap,
+                    conversationHistory,
+                    useRag: request.useRag ?? true,
+                    useWeb: request.useWeb ?? false,
+                    includeCitations: includeCitations ?? true,
+                },
+                { onToken }
+            )
             : await GenerationService.generate({
-                  projectId,
-                  stage: "Q4",
-                  userInput: generationInput,
-                  previousStagesContext: previousContextMap,
-                  conversationHistory,
-                  useRag: request.useRag ?? true,
-              });
+                projectId,
+                stage: "Q4",
+                userInput: generationInput,
+                previousStagesContext: previousContextMap,
+                conversationHistory,
+                useRag: request.useRag ?? true,
+                useWeb: request.useWeb ?? false,
+                includeCitations: includeCitations ?? true,
+            });
 
         const keywords = extractQ4Keywords(generationResult.content, formData);
         const validation = this.contentValidator.validate(generationResult.content);
@@ -101,6 +109,7 @@ export class Q4GenerationService {
                 keywords,
                 coverage,
                 rag_results: generationResult.ragResults,
+                web_results: generationResult.webResults,
             },
             {
                 overall: coverage.overall,
@@ -116,6 +125,7 @@ export class Q4GenerationService {
             keywords,
             coverage,
             ragResults: generationResult.ragResults,
+            webResults: generationResult.webResults,
             validation: {
                 isValid: validation.isValid,
                 suggestions: [...validation.suggestions, ...coverage.suggestions],

@@ -20,6 +20,8 @@ export interface Q5GenerationRequest {
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
     user?: { id?: string; name?: string };
     useRag?: boolean;
+    useWeb?: boolean;
+    includeCitations?: boolean;  // Whether to include citations in output
     stream?: boolean;
     onToken?: (chunk: string) => void;
 }
@@ -31,6 +33,7 @@ export interface Q5GenerationResult {
     tagline: string;
     suitability: { score: number; suggestions: string[] };
     ragResults: any[];
+    webResults: any[];
     validation: { isValid: boolean; suggestions: string[] };
     metadata: { promptUsed: string; tokenUsage: any; timestamp: Date };
 }
@@ -48,6 +51,7 @@ export class Q5GenerationService {
             formData: rawFormData,
             conversationHistory,
             user,
+            includeCitations,
             stream,
             onToken,
         } = request;
@@ -59,24 +63,28 @@ export class Q5GenerationService {
         const generationInput = buildQ5GenerationInput(formData, previousContextMap);
         const generationResult = stream
             ? await GenerationService.generateStream(
-                  {
-                      projectId,
-                      stage: "Q5",
-                      userInput: generationInput,
-                      previousStagesContext: previousContextMap,
-                      conversationHistory,
-                      useRag: request.useRag ?? true,
-                  },
-                  { onToken }
-              )
+                {
+                    projectId,
+                    stage: "Q5",
+                    userInput: generationInput,
+                    previousStagesContext: previousContextMap,
+                    conversationHistory,
+                    useRag: request.useRag ?? true,
+                    useWeb: request.useWeb ?? false,
+                    includeCitations: includeCitations ?? true,
+                },
+                { onToken }
+            )
             : await GenerationService.generate({
-                  projectId,
-                  stage: "Q5",
-                  userInput: generationInput,
-                  previousStagesContext: previousContextMap,
-                  conversationHistory,
-                  useRag: request.useRag ?? true,
-              });
+                projectId,
+                stage: "Q5",
+                userInput: generationInput,
+                previousStagesContext: previousContextMap,
+                conversationHistory,
+                useRag: request.useRag ?? true,
+                useWeb: request.useWeb ?? false,
+                includeCitations: includeCitations ?? true,
+            });
 
         const suitability = computeNameSuitability(formData, generationResult.ragResults.length);
         const keywords = extractQ5Keywords(generationResult.content, formData);
@@ -98,6 +106,7 @@ export class Q5GenerationService {
                 tagline,
                 suitability,
                 rag_results: generationResult.ragResults,
+                web_results: generationResult.webResults,
             },
             {
                 overall: suitability.score,
@@ -115,6 +124,7 @@ export class Q5GenerationService {
             tagline,
             suitability,
             ragResults: generationResult.ragResults,
+            webResults: generationResult.webResults,
             validation: {
                 isValid: validation.isValid,
                 suggestions: [...validation.suggestions, ...suitability.suggestions],

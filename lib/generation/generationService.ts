@@ -2,6 +2,8 @@ import { LLMClient, ChatMessage, TokenUsage } from "@/lib/llm";
 import { searchSimilar } from "@/lib/vectorDb";
 import { generateEmbedding } from "@/lib/embedding";
 import { getPrompt } from "@/lib/getPrompt";
+import { runWebSearch, type WebSearchResult } from "@/lib/webSearch";
+import { Q1_PROMPT_TEMPLATE } from "@/lib/q1/q1PromptTemplate";
 import {
     hasUnresolvedVariables,
     extractVariables,
@@ -23,6 +25,8 @@ export interface GenerationRequest {
     schoolInfo?: Record<string, any>;
     conversationHistory?: Message[];
     useRag?: boolean;
+    useWeb?: boolean;
+    includeCitations?: boolean;  // Whether to include citations in output (default: true)
 }
 
 export interface Message {
@@ -50,6 +54,7 @@ export interface GenerationResult {
     content: string;
     diagnosticScore?: DiagnosticScore;
     ragResults: SearchResult[];
+    webResults: WebSearchResult[];
     usage: TokenUsage;
     metadata: GenerationMetadata;
 }
@@ -57,6 +62,7 @@ export interface GenerationResult {
 export interface GenerationMetadata {
     promptUsed: string;
     ragResults: SearchResult[];
+    webResults: WebSearchResult[];
     tokenUsage: TokenUsage;
     stage: string;
     timestamp: Date;
@@ -90,39 +96,89 @@ export class GenerationService {
     static clearCache(): void {
         this.cache.clear();
     }
+    private static withCitationPolicy(
+        promptTemplate: string,
+        ragResults?: SearchResult[],
+        webResults?: WebSearchResult[],
+        includeCitations: boolean = true
+    ): string {
+        const hasReferences =
+            (ragResults?.length || 0) + (webResults?.length || 0) > 0;
+        if (!hasReferences || !includeCitations) return promptTemplate;
+        const citationPolicy =
+            "引用要求：如使用参考资料，请在相关句末标注对应编号（如 [1] 或 [1][3]），编号必须与“参考资料列表”一致，并在文末保留“参考资料列表”。不得编造引用。";
+        return `${citationPolicy}\n\n${promptTemplate}`;
+    }
+
+    /**
+     * Strip citation references and reference list from generated content
+     */
+    private static stripCitationsFromContent(content: string): string {
+        if (!content) return content;
+
+        // Remove inline citations like [1], [2][3], etc.
+        let cleaned = content.replace(/\[\d+\](?:\[\d+\])*/g, '');
+
+        // Remove reference list section at the end
+        const refPatterns = [
+            /\n*#{1,3}\s*(参考文献|引用来源|参考资料|文献引用|参考资料列表|References|Citations|Bibliography|Sources)[\s\S]*$/i,
+            /\n*(参考文献|引用来源|参考资料|文献引用|参考资料列表|References|Citations|Bibliography|Sources)\s*[:：]?[\s\S]*$/i,
+        ];
+
+        for (const pattern of refPatterns) {
+            cleaned = cleaned.replace(pattern, '');
+        }
+
+        // Clean up extra whitespace at the end
+        cleaned = cleaned.trim();
+
+        return cleaned;
+    }
 
     /**
      * Main generation method - integrates RAG + Prompt + LLM
      */
     static async generate(request: GenerationRequest): Promise<GenerationResult> {
         const {
-            // projectId is available for future use (e.g., logging, caching)
+            projectId,
             stage,
             userInput,
             previousStagesContext,
             schoolInfo,
             conversationHistory,
             useRag = true,
+            useWeb = false,
+            includeCitations = true,
         } = request;
 
         const cacheKey = this.buildCacheKey(
+            projectId,
             stage,
             userInput,
             previousStagesContext,
             schoolInfo,
-            conversationHistory
+            conversationHistory,
+            useRag,
+            useWeb
         );
         const cached = this.cache.get(cacheKey);
         if (cached && cached.expiresAt > Date.now()) {
             return {
                 ...cached.result,
                 ragResults: [...cached.result.ragResults],
+                webResults: [...cached.result.webResults],
                 metadata: { ...cached.result.metadata, fromCache: true },
             };
         }
 
-        // 1. Perform RAG retrieval (optional)
-        const ragResults = useRag ? await this.performRAGRetrieval(stage, userInput) : [];
+        // 1. Perform retrievals (optional)
+        const ragPromise = useRag
+            ? this.performRAGRetrieval(stage, userInput)
+            : Promise.resolve([]);
+        const webPromise = useWeb
+            ? this.performWebRetrieval(projectId, stage, userInput)
+            : Promise.resolve([]);
+        const [ragResults, webResults] = await Promise.all([ragPromise, webPromise]);
 
         // 2. Get prompt template for the stage
         const promptKey = `stage_${stage.toLowerCase()}`;
@@ -132,14 +188,20 @@ export class GenerationService {
             DEFAULT_STAGE_PROMPTS[stage] ||
             `You are creating content for stage ${stage}. User Input:\n{{user_input}}\nPrevious Stages:\n{{previous_stages}}\nRAG:\n{{rag_results}}\nGenerate a concise, well-structured report.`;
 
-        const promptTemplate = promptResult?.template || fallbackTemplate;
+        const promptTemplate = this.withCitationPolicy(
+            promptResult?.template || fallbackTemplate,
+            ragResults,
+            webResults,
+            includeCitations
+        );
 
         // 3. Build variables for interpolation
         const variables = this.buildPromptVariables(
             userInput,
             previousStagesContext,
             ragResults,
-            schoolInfo
+            schoolInfo,
+            webResults
         );
 
         // 4. Interpolate the prompt
@@ -172,6 +234,7 @@ export class GenerationService {
         const metadata: GenerationMetadata = {
             promptUsed: interpolatedPrompt,
             ragResults,
+            webResults,
             tokenUsage: llmResponse.usage,
             stage,
             timestamp: new Date(),
@@ -181,6 +244,7 @@ export class GenerationService {
         const result: GenerationResult = {
             content: llmResponse.content,
             ragResults,
+            webResults,
             usage: llmResponse.usage,
             metadata,
         };
@@ -201,15 +265,24 @@ export class GenerationService {
         options?: { onToken?: (chunk: string) => void }
     ): Promise<GenerationResult> {
         const {
+            projectId,
             stage,
             userInput,
             previousStagesContext,
             schoolInfo,
             conversationHistory,
             useRag = true,
+            useWeb = false,
+            includeCitations = true,
         } = request;
 
-        const ragResults = useRag ? await this.performRAGRetrieval(stage, userInput) : [];
+        const ragPromise = useRag
+            ? this.performRAGRetrieval(stage, userInput)
+            : Promise.resolve([]);
+        const webPromise = useWeb
+            ? this.performWebRetrieval(projectId, stage, userInput)
+            : Promise.resolve([]);
+        const [ragResults, webResults] = await Promise.all([ragPromise, webPromise]);
 
         const promptKey = `stage_${stage.toLowerCase()}`;
         const promptResult = await getPrompt({ key: promptKey });
@@ -218,13 +291,19 @@ export class GenerationService {
             DEFAULT_STAGE_PROMPTS[stage] ||
             `You are creating content for stage ${stage}. User Input:\n{{user_input}}\nPrevious Stages:\n{{previous_stages}}\nRAG:\n{{rag_results}}\nGenerate a concise, well-structured report.`;
 
-        const promptTemplate = promptResult?.template || fallbackTemplate;
+        const promptTemplate = this.withCitationPolicy(
+            promptResult?.template || fallbackTemplate,
+            ragResults,
+            webResults,
+            includeCitations
+        );
 
         const variables = this.buildPromptVariables(
             userInput,
             previousStagesContext,
             ragResults,
-            schoolInfo
+            schoolInfo,
+            webResults
         );
 
         const interpolatedPrompt = interpolatePromptVariables(
@@ -270,6 +349,7 @@ export class GenerationService {
         const metadata: GenerationMetadata = {
             promptUsed: interpolatedPrompt,
             ragResults,
+            webResults,
             tokenUsage: usage,
             stage,
             timestamp: new Date(),
@@ -279,23 +359,30 @@ export class GenerationService {
         return {
             content,
             ragResults,
+            webResults,
             usage,
             metadata,
         };
     }
 
     private static buildCacheKey(
+        projectId: string,
         stage: string,
         userInput: Record<string, any>,
         previousStagesContext?: Record<string, any>,
         schoolInfo?: Record<string, any>,
-        conversationHistory?: Message[]
+        conversationHistory?: Message[],
+        useRag?: boolean,
+        useWeb?: boolean
     ): string {
         return stableSerialize({
+            projectId,
             stage,
             userInput,
             previousStagesContext,
             schoolInfo,
+            useRag: !!useRag,
+            useWeb: !!useWeb,
             conversationHistory: (conversationHistory || []).map((m) => ({
                 role: m.role,
                 content: m.content,
@@ -313,7 +400,7 @@ export class GenerationService {
         try {
             // Build query from user input
             const queryText = this.buildRAGQuery(stage, userInput);
-            
+
             if (!queryText) {
                 return [];
             }
@@ -330,6 +417,25 @@ export class GenerationService {
         } catch (error) {
             console.warn("[GenerationService] RAG retrieval failed, continue without RAG:", error);
             // Degrade gracefully - continue without RAG results
+            return [];
+        }
+    }
+
+    private static async performWebRetrieval(
+        projectId: string,
+        stage: string,
+        userInput: Record<string, any>
+    ): Promise<WebSearchResult[]> {
+        try {
+            const { results } = await runWebSearch({
+                projectId,
+                stageId: stage,
+                formData: userInput,
+                fetchContent: true,
+            });
+            return results;
+        } catch (error) {
+            console.warn("[GenerationService] Web search failed, continue without web:", error);
             return [];
         }
     }
@@ -379,7 +485,8 @@ export class GenerationService {
         userInput: Record<string, any>,
         previousStagesContext?: Record<string, any>,
         ragResults?: SearchResult[],
-        schoolInfo?: Record<string, any>
+        schoolInfo?: Record<string, any>,
+        webResults?: WebSearchResult[]
     ): Record<string, string> {
         const variables: Record<string, string> = {};
 
@@ -412,9 +519,32 @@ export class GenerationService {
             variables["previous_stages"] = "{}";
         }
 
-        // Add RAG results
-        if (ragResults && ragResults.length > 0) {
-            const formattedRag = ragResults.map((r, idx) => {
+        const citationGuide =
+            "引用格式：在正文中引用参考资料时，请在相关句尾添加对应编号，如 [1] 或 [1][3]；并在文末保留“参考资料”列表，列出 [编号] 文件名/来源。";
+
+        const formatReferences = (
+            items: Array<{
+                title: string;
+                body: string;
+                source: string;
+                chunkInfo?: string;
+            }>,
+            startIndex: number
+        ) => {
+            const blocks: string[] = [];
+            const notes: string[] = [];
+            items.forEach((item, idx) => {
+                const index = startIndex + idx;
+                const label = `${item.title}${item.source ? ` (${item.source})` : ""}`;
+                const chunkInfo = item.chunkInfo ? ` ${item.chunkInfo}` : "";
+                blocks.push(`[${index}] ${label}${chunkInfo}\n${item.body}`);
+                notes.push(`[${index}] ${label}`);
+            });
+            return { blocks, notes };
+        };
+
+        const ragItems =
+            (ragResults || []).map((r, idx) => {
                 const title =
                     (r.metadata &&
                         (r.metadata.original_name ||
@@ -426,26 +556,43 @@ export class GenerationService {
                 const body = (r.content || "").trim();
                 const chunkInfo =
                     r.metadata && (r.metadata.chunk_index !== undefined || r.metadata.total_chunks)
-                        ? ` (Chunk ${ (r.metadata.chunk_index ?? 0) + 1 }/${r.metadata.total_chunks || "?"})`
+                        ? `(Chunk ${(r.metadata.chunk_index ?? 0) + 1}/${r.metadata.total_chunks || "?"})`
                         : "";
-                return `[${idx + 1}] ${title}${chunkInfo}\n${body}`;
-            });
-            const citationGuide =
-                "引用格式：在正文中引用参考资料时，请在相关句尾添加对应编号，如 [1] 或 [1][3]；并在文末保留“参考资料”列表，列出 [编号] 文件名/来源。";
-            const footnoteList = formattedRag
-                .map((item, idx) => `[${idx + 1}] ${item.split("\n")[0].replace(/^\[\d+\]\s*/, "")}`)
-                .join("\n");
-            const ragContent = `${formattedRag.join("\n\n---\n\n")}\n\n${citationGuide}\n参考资料列表：\n${footnoteList}`;
-            variables["rag_results"] = ragContent;
-            variables["reference_materials"] = ragContent;
-            variables["rag_citation_note"] = citationGuide;
-            variables["rag_references"] = footnoteList;
-        } else {
-            variables["rag_results"] = "";
-            variables["reference_materials"] = "";
-            variables["rag_citation_note"] = "";
-            variables["rag_references"] = "";
-        }
+                return {
+                    title,
+                    body,
+                    source: "Knowledge Base",
+                    chunkInfo,
+                };
+            }) || [];
+
+        const webItems =
+            (webResults || []).map((r) => ({
+                title: r.title || r.url || "Web Source",
+                body: (r.content || r.snippet || "").trim(),
+                source: r.source || "Web",
+                chunkInfo: "",
+            })) || [];
+
+        const ragFormatted = formatReferences(ragItems, 1);
+        const webFormatted = formatReferences(webItems, ragItems.length + 1);
+        const combinedBlocks = [...ragFormatted.blocks, ...webFormatted.blocks];
+        const combinedNotes = [...ragFormatted.notes, ...webFormatted.notes];
+
+        const buildReferenceSection = (blocks: string[], notes: string[]) => {
+            if (!blocks.length) return "";
+            const list = notes.join("\n");
+            return `${blocks.join("\n\n---\n\n")}\n\n${citationGuide}\n参考资料列表：\n${list}`;
+        };
+
+        const combinedSection = buildReferenceSection(combinedBlocks, combinedNotes);
+        const webSection = buildReferenceSection(webFormatted.blocks, webFormatted.notes);
+
+        variables["rag_results"] = combinedSection;
+        variables["reference_materials"] = combinedSection;
+        variables["web_results"] = webSection;
+        variables["rag_citation_note"] = combinedBlocks.length ? citationGuide : "";
+        variables["rag_references"] = combinedNotes.join("\n");
 
         // Add school info
         if (schoolInfo) {
@@ -498,11 +645,7 @@ export class GenerationService {
 }
 
 const DEFAULT_STAGE_PROMPTS: Record<string, string> = {
-    Q1: `你是一名课程设计专家，需基于学校情境（SWOT）生成《学校课程资源分析》。
-用户输入（SWOT与学校信息）：{{user_input}}
-前序阶段：{{previous_stages}}
-相关资料：{{rag_results}}
-请输出：优势/劣势/机会/威胁的总结与建议，结构清晰分段，给出行动建议。`,
+    Q1: Q1_PROMPT_TEMPLATE,
     Q2: `你是一名课程哲学顾问，需基于用户输入生成教育哲学陈述。
 用户输入：{{user_input}}
 前序阶段：{{previous_stages}}

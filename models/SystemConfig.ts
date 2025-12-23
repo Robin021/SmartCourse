@@ -24,9 +24,22 @@ export interface IStorageProvider {
     is_active: boolean;
 }
 
+export interface IWebSearchConfig {
+    enabled: boolean;
+    serper_api_key: string;
+    firecrawl_api_key: string;
+    jina_api_key: string;
+    max_k: number;
+    language: string;
+    region: string;
+    use_firecrawl: boolean;
+    use_jina: boolean;
+}
+
 export interface ISystemConfig extends Document {
     llm_providers: ILLMProvider[];
     storage_providers: IStorageProvider[];
+    web_search?: IWebSearchConfig;
     updated_by: string;
 }
 
@@ -64,6 +77,17 @@ const SystemConfigSchema: Schema = new Schema(
                 is_active: { type: Boolean, default: false },
             },
         ],
+        web_search: {
+            enabled: { type: Boolean, default: false },
+            serper_api_key: { type: String, default: "" },
+            firecrawl_api_key: { type: String, default: "" },
+            jina_api_key: { type: String, default: "" },
+            max_k: { type: Number, default: 5 },
+            language: { type: String, default: "zh-CN" },
+            region: { type: String, default: "" },
+            use_firecrawl: { type: Boolean, default: true },
+            use_jina: { type: Boolean, default: true },
+        },
         updated_by: { type: String },
     },
     { timestamps: true }

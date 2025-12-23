@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { buildExportBundle } from "@/lib/export/exportService";
 
+export const runtime = "nodejs";
+
 type ExportFormat = "text" | "docx" | "pdf" | "pptx";
+
+interface ExportQueryParams {
+    preview?: boolean;
+}
+
 
 function toResponse(bundle: {
     filename: string;
@@ -13,9 +20,13 @@ function toResponse(bundle: {
         status: 200,
         headers: {
             "Content-Type": bundle.contentType,
-            "Content-Disposition": `attachment; filename="${encodeURIComponent(bundle.filename)}"`,
+            "Content-Disposition": `attachment; filename="export.${bundle.filename.split('.').pop()}"; filename*=UTF-8''${encodeURIComponent(bundle.filename)}`,
         },
     });
+}
+
+function toPreviewResponse(bundle: { sections: any[] }) {
+    return NextResponse.json({ success: true, sections: bundle.sections });
 }
 
 export async function GET(
@@ -31,6 +42,7 @@ export async function GET(
         const templateId = searchParams.get("templateId") || undefined;
         const sectionsParam = searchParams.get("sections");
         const selectedSections = sectionsParam ? sectionsParam.split(",").map((s) => s.trim()) : undefined;
+        const isPreview = searchParams.get("preview") === "true";
 
         const bundle = await buildExportBundle({
             projectId: params.id,
@@ -38,7 +50,12 @@ export async function GET(
             format,
             templateId,
             selectedSections,
+            excludeCitations: searchParams.get("excludeCitations") === "true",
         });
+
+        if (isPreview) {
+            return toPreviewResponse(bundle);
+        }
 
         return toResponse(bundle);
     } catch (error: any) {
@@ -57,7 +74,7 @@ export async function POST(
     try {
         const params = await context.params;
         const body = await req.json();
-        const { stages, format = "text", templateId, selectedSections } = body || {};
+        const { stages, format = "text", templateId, selectedSections, preview, excludeCitations } = body || {};
 
         const bundle = await buildExportBundle({
             projectId: params.id,
@@ -65,7 +82,12 @@ export async function POST(
             format,
             templateId,
             selectedSections,
+            excludeCitations: !!excludeCitations,
         });
+
+        if (preview) {
+            return toPreviewResponse(bundle);
+        }
 
         return toResponse(bundle);
     } catch (error: any) {

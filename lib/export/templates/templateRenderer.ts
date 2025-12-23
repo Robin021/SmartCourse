@@ -11,9 +11,10 @@ import type {
   ExportFormat,
 } from './types';
 import { getTemplateById, getDefaultTemplate } from './templateRegistry';
-import { Document, HeadingLevel, Packer, Paragraph, TextRun, TableOfContents, Header, Footer, PageNumber, AlignmentType } from 'docx';
-import PDFDocument from 'pdfkit';
+import { Document, HeadingLevel, Packer, Paragraph, Table, TableCell, TableRow, TextRun, TableOfContents, Header, Footer, PageNumber, AlignmentType, WidthType } from 'docx';
 import PptxGenJS from 'pptxgenjs';
+import { addPageNumbers, createPdfDoc, getContentWidth, pdfToBuffer, writeTextBlocks } from '../pdfUtils';
+import { parseMarkdownTable, stripInlineMarkdown } from '../markdownUtils';
 
 /**
  * 从项目数据中提取指定路径的值
@@ -155,6 +156,116 @@ function buildTemplateSections(
   });
 }
 
+function buildDocxTable(rows: string[][]): Table {
+  const maxColumns = Math.max(...rows.map((row) => row.length));
+  const normalized = rows.map((row) => row.concat(Array(Math.max(0, maxColumns - row.length)).fill('')));
+  const headerRow = normalized[0] || [];
+  const bodyRows = normalized.slice(1);
+
+  const header = new TableRow({
+    tableHeader: true,
+    children: headerRow.map(
+      (cell) =>
+        new TableCell({
+          children: [new Paragraph({ children: [new TextRun({ text: cell, bold: true })] })],
+        })
+    ),
+  });
+
+  const body = bodyRows.map(
+    (row) =>
+      new TableRow({
+        children: row.map(
+          (cell) =>
+            new TableCell({
+              children: [new Paragraph(cell || ' ')],
+            })
+        ),
+      })
+  );
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [header, ...body],
+  });
+}
+
+function docxParagraphsFromMarkdown(content: string): Array<Paragraph | Table> {
+  const lines = (content || '').split(/\r?\n/);
+  const blocks: Array<Paragraph | Table> = [];
+  let inCodeBlock = false;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const rawLine = lines[index];
+    const line = rawLine.replace(/\t/g, '    ');
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith('```')) {
+      inCodeBlock = !inCodeBlock;
+      continue;
+    }
+
+    if (!trimmed) continue;
+
+    if (inCodeBlock) {
+      blocks.push(
+        new Paragraph({
+          children: [new TextRun({ text: line, font: 'Courier New', color: '374151' })],
+        })
+      );
+      continue;
+    }
+
+    const table = parseMarkdownTable(lines, index);
+    if (table) {
+      blocks.push(buildDocxTable(table.rows));
+      index = table.endIndex - 1;
+      continue;
+    }
+
+    const bulletMatch = trimmed.match(/^[-*•]\s+(.*)$/);
+    if (bulletMatch) {
+      blocks.push(
+        new Paragraph({
+          children: [new TextRun({ text: stripInlineMarkdown(bulletMatch[1]) })],
+          bullet: { level: 0 },
+        })
+      );
+      continue;
+    }
+
+    const numberedMatch = trimmed.match(/^\s*(\d+)[.)]\s+(.*)$/);
+    if (numberedMatch) {
+      blocks.push(new Paragraph(`${numberedMatch[1]}. ${stripInlineMarkdown(numberedMatch[2])}`));
+      continue;
+    }
+
+    const quoteMatch = trimmed.match(/^>\s+(.*)$/);
+    if (quoteMatch) {
+      blocks.push(
+        new Paragraph({
+          children: [new TextRun({ text: stripInlineMarkdown(quoteMatch[1]), italics: true, color: '4B5563' })],
+        })
+      );
+      continue;
+    }
+
+    if (trimmed.includes('|') && !/^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(trimmed)) {
+      const cells = trimmed
+        .replace(/^\|/, '')
+        .replace(/\|$/, '')
+        .split('|')
+        .map((c) => stripInlineMarkdown(c));
+      blocks.push(new Paragraph(cells.filter(Boolean).join('    ')));
+      continue;
+    }
+
+    blocks.push(new Paragraph(stripInlineMarkdown(trimmed)));
+  }
+
+  return blocks.length ? blocks : [new Paragraph('（暂无内容）')];
+}
+
 /**
  * 渲染 DOCX 格式
  */
@@ -166,7 +277,7 @@ async function renderDocxWithTemplate(
   const sections = buildTemplateSections(template, project, selectedSections);
   const style = template.style;
 
-  const children: Paragraph[] = [];
+  const children: Array<Paragraph | Table> = [];
 
   // 封面标题
   children.push(
@@ -232,18 +343,10 @@ async function renderDocxWithTemplate(
             heading: HeadingLevel.HEADING_2,
           })
         );
-        // 分行添加内容
-        const lines = sub.content.split(/\n+/).filter(Boolean);
-        for (const line of lines) {
-          children.push(new Paragraph({ text: line }));
-        }
+        children.push(...docxParagraphsFromMarkdown(sub.content));
       }
     } else if (content) {
-      // 直接添加章节内容
-      const lines = content.split(/\n+/).filter(Boolean);
-      for (const line of lines) {
-        children.push(new Paragraph({ text: line }));
-      }
+      children.push(...docxParagraphsFromMarkdown(content));
     }
   }
 
@@ -311,99 +414,113 @@ async function renderPdfWithTemplate(
 ): Promise<Buffer> {
   const sections = buildTemplateSections(template, project, selectedSections);
   const style = template.style;
+  const titleFontSize = style.titleFontSize || 18;
+  const bodyFontSize = style.bodyFontSize || 11;
+  const primaryColor = style.primaryColor || '#111827';
+  const secondaryColor = style.secondaryColor || primaryColor;
 
-  const doc = new PDFDocument({ margin: 50 });
-  const buffers: Buffer[] = [];
-
-  doc.on('data', (chunk) => buffers.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+  const { doc, bodyFont, headingFont } = createPdfDoc();
+  const contentWidth = getContentWidth(doc);
 
   // 封面
-  doc.fontSize(style.titleFontSize + 6)
-    .fillColor(style.primaryColor)
-    .text(project.name || '课程设计', { align: 'center' });
-  doc.moveDown();
-  doc.fontSize(style.titleFontSize - 2)
-    .fillColor(style.secondaryColor)
-    .text(template.name, { align: 'center' });
-  doc.moveDown(2);
+  doc.font(headingFont)
+    .fontSize(titleFontSize + 6)
+    .fillColor(primaryColor)
+    .text(project.name || '课程设计', { align: 'center', width: contentWidth });
+  doc.moveDown(0.3);
+  doc.font(bodyFont)
+    .fontSize(Math.max(titleFontSize - 2, 10))
+    .fillColor(secondaryColor)
+    .text(template.name, { align: 'center', width: contentWidth });
+  doc.moveDown(1.2);
 
   // 目录（简单版）
   if (style.showTableOfContents) {
-    doc.fontSize(style.titleFontSize)
-      .fillColor('#000')
-      .text('目 录', { align: 'center' });
-    doc.moveDown();
-    sections.forEach(({ section }, index) => {
-      doc.fontSize(style.bodyFontSize)
-        .fillColor('#333')
-        .text(`${index + 1}. ${section.title}`);
-    });
+    doc.font(headingFont)
+      .fontSize(titleFontSize)
+      .fillColor(primaryColor)
+      .text('目 录', { align: 'left', width: contentWidth });
+    doc.moveDown(0.4);
+    doc.font(bodyFont)
+      .fontSize(bodyFontSize)
+      .fillColor('#111')
+      .list(
+        sections.map(({ section }, index) => `${index + 1}. ${section.title}`),
+        { bulletIndent: 10, textIndent: 18, width: contentWidth }
+      );
     doc.addPage();
   }
 
   // 各章节
   sections.forEach(({ section, content, subsectionContents }, index) => {
-    if (index > 0) doc.moveDown(1.5);
+    if (index > 0) doc.moveDown(0.8);
 
-    // 章节标题
-    doc.fontSize(style.titleFontSize)
-      .fillColor(style.primaryColor)
-      .text(section.title, { underline: true });
+    doc.font(headingFont)
+      .fontSize(titleFontSize)
+      .fillColor(primaryColor)
+      .text(section.title, { width: contentWidth });
 
-    // 章节描述
     if (section.description) {
-      doc.moveDown(0.3);
-      doc.fontSize(style.bodyFontSize - 1)
-        .fillColor('#666')
-        .text(section.description, { oblique: true });
+      doc.moveDown(0.25);
+      doc.font(bodyFont)
+        .fontSize(Math.max(bodyFontSize - 1, 9))
+        .fillColor('#4B5563')
+        .text(section.description, { width: contentWidth, lineGap: 3, paragraphGap: 6 });
     }
-    doc.moveDown(0.5);
 
-    // 子章节
+    doc.moveDown(0.3);
+    doc.font(bodyFont).fontSize(bodyFontSize).fillColor('#111');
+
     if (subsectionContents && subsectionContents.length > 0) {
       for (const sub of subsectionContents) {
-        doc.fontSize(style.bodyFontSize + 1)
-          .fillColor(style.secondaryColor)
-          .text(sub.title);
-        doc.moveDown(0.3);
-        doc.fontSize(style.bodyFontSize)
-          .fillColor('#111')
-          .text(sub.content, { width: 500, lineGap: 3 });
-        doc.moveDown(0.5);
+        doc.font(headingFont)
+          .fontSize(bodyFontSize + 1)
+          .fillColor(secondaryColor)
+          .text(sub.title, { width: contentWidth });
+        doc.moveDown(0.15);
+        doc.font(bodyFont).fillColor('#111');
+        writeTextBlocks(doc, sub.content, {
+          width: contentWidth,
+          lineGap: 4,
+          paragraphGap: 8,
+          bodyFont,
+          headingFont,
+          textColor: '#111827',
+          mutedColor: '#4B5563',
+          headingColor: primaryColor,
+          ruleColor: '#e0e0e0',
+        });
+        doc.moveDown(0.35);
       }
     } else {
-      doc.fontSize(style.bodyFontSize)
-        .fillColor('#111')
-        .text(content, { width: 500, lineGap: 3 });
+      writeTextBlocks(doc, content, {
+        width: contentWidth,
+        lineGap: 4,
+        paragraphGap: 10,
+        bodyFont,
+        headingFont,
+        textColor: '#111827',
+        mutedColor: '#4B5563',
+        headingColor: primaryColor,
+        ruleColor: '#e0e0e0',
+      });
     }
 
-    // 分隔线
-    doc.moveDown(0.5);
-    doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke('#e0e0e0');
+    doc.moveDown(0.6);
+    doc.moveTo(doc.page.margins.left, doc.y)
+      .lineTo(doc.page.width - doc.page.margins.right, doc.y)
+      .stroke('#e0e0e0');
   });
 
-  // 页脚
-  if (style.footerText) {
-    const range = doc.bufferedPageRange();
-    for (let i = range.start; i < range.start + range.count; i++) {
-      doc.switchToPage(i);
-      doc.fontSize(9)
-        .fillColor('#888')
-        .text(
-          style.showPageNumbers ? `${style.footerText} - 第 ${i + 1} 页` : style.footerText,
-          50,
-          doc.page.height - 50,
-          { align: 'center' }
-        );
-    }
-  }
+  addPageNumbers(doc, {
+    label: style.footerText || template.name,
+    showNumbers: style.showPageNumbers !== false,
+    font: bodyFont,
+    align: 'center',
+  });
 
   doc.end();
-
-  return new Promise((resolve, reject) => {
-    doc.on('end', () => resolve(Buffer.concat(buffers)));
-    doc.on('error', reject);
-  });
+  return pdfToBuffer(doc);
 }
 
 /**
@@ -619,5 +736,3 @@ export async function renderWithTemplate(
 }
 
 export default renderWithTemplate;
-
-

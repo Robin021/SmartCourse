@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ExportPreviewModal } from "./ExportPreviewModal";
 
 type ExportFormat = "text" | "docx" | "pdf" | "pptx";
 const ALL_EXPORT_FORMATS: ExportFormat[] = ["text", "docx", "pdf", "pptx"];
@@ -32,14 +33,19 @@ interface ExportPanelProps {
 
 function parseFilename(disposition: string | null): string | null {
   if (!disposition) return null;
-  const match = /filename\*?=([^;]+)/i.exec(disposition);
-  if (match?.[1]) {
-    const raw = match[1].replace(/(^")|("$)/g, "");
+  // Try filename*=
+  const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
+  if (utf8Match?.[1]) {
     try {
-      return decodeURIComponent(raw);
+      return decodeURIComponent(utf8Match[1]);
     } catch {
-      return raw;
+      return utf8Match[1];
     }
+  }
+  // Try filename=
+  const match = /filename="?([^";]+)"?/i.exec(disposition);
+  if (match?.[1]) {
+    return match[1];
   }
   return null;
 }
@@ -56,6 +62,12 @@ export function ExportPanel({ projectId, stages }: ExportPanelProps) {
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+
+  // 预览相关状态
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   // 加载模板列表
   useEffect(() => {
@@ -142,6 +154,39 @@ export function ExportPanel({ projectId, stages }: ExportPanelProps) {
     );
   };
 
+  const handlePreview = async () => {
+    setIsPreviewOpen(true);
+    setIsPreviewLoading(true);
+    setPreviewError(null);
+    try {
+      const res = await fetch(`/api/project/${projectId}/export`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          format,
+          stages: selectedStages.length > 0 ? selectedStages : undefined,
+          templateId: selectedTemplate || undefined,
+          preview: true,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("预览生成失败");
+      }
+
+      const data = await res.json();
+      if (data.success) {
+        setPreviewData(data);
+      } else {
+        throw new Error(data.error || "预览生成失败");
+      }
+    } catch (err: any) {
+      setPreviewError(err.message || "预览失败，请稍后重试");
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
+
   const handleExport = async () => {
     setIsExporting(true);
     setError(null);
@@ -188,13 +233,22 @@ export function ExportPanel({ projectId, stages }: ExportPanelProps) {
             选择模板和格式，一键导出专业文档
           </p>
         </div>
-        <button
-          onClick={handleExport}
-          disabled={isExporting}
-          className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-500 disabled:opacity-60"
-        >
-          {isExporting ? "导出中..." : "导出"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handlePreview}
+            disabled={isExporting}
+            className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+          >
+            预览
+          </button>
+          <button
+            onClick={handleExport}
+            disabled={isExporting}
+            className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-500 disabled:opacity-60"
+          >
+            {isExporting ? "导出中..." : "导出"}
+          </button>
+        </div>
       </div>
 
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -301,11 +355,10 @@ export function ExportPanel({ projectId, stages }: ExportPanelProps) {
                   key={stage.stage_id}
                   type="button"
                   onClick={() => toggleStage(stage.stage_id)}
-                  className={`rounded-full border px-3 py-1 text-[11px] transition ${
-                    active
-                      ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-900/30 dark:text-indigo-200"
-                      : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-indigo-300 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
-                  }`}
+                  className={`rounded-full border px-3 py-1 text-[11px] transition ${active
+                    ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-900/30 dark:text-indigo-200"
+                    : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-indigo-300 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+                    }`}
                 >
                   {stage.stage_id} {stage.name}
                 </button>
@@ -316,6 +369,14 @@ export function ExportPanel({ projectId, stages }: ExportPanelProps) {
       )}
 
       {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
+
+      <ExportPreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        isLoading={isPreviewLoading}
+        data={previewData}
+        error={previewError}
+      />
     </div>
   );
 }

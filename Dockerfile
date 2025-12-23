@@ -20,6 +20,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# PDF 导出需要中文字体（用于在容器内正确渲染）
+RUN apk add --no-cache font-noto-cjk
+
 # 创建非root用户
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs

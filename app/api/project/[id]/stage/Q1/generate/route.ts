@@ -21,7 +21,7 @@ export async function POST(
         const { searchParams } = new URL(request.url);
         const shouldStream = searchParams.get("stream") === "1";
         
-        const { formData, schoolInfo, conversationHistory, useRag } = body;
+        const { formData, schoolInfo, conversationHistory, useRag, useWeb } = body;
 
         if (!formData) {
             return NextResponse.json(
@@ -40,6 +40,7 @@ export async function POST(
                 schoolInfo,
                 conversationHistory,
                 useRag,
+                useWeb,
                 stream: shouldStream,
                 onToken,
             });
@@ -50,6 +51,7 @@ export async function POST(
                 swotAnalysis: result.swotAnalysis,
                 validation: result.validation,
                 ragResults: result.ragResults,
+                webResults: result.webResults,
                 metadata: result.metadata,
             };
         };

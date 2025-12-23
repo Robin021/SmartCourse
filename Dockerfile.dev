@@ -2,6 +2,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# PDF 导出需要中文字体（用于在容器内正确渲染）
+RUN apk add --no-cache font-noto-cjk
+
 # 安装依赖
 COPY package*.json ./
 RUN npm ci

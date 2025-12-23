@@ -20,6 +20,8 @@ export interface Q8GenerationRequest {
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
     user?: { id?: string; name?: string };
     useRag?: boolean;
+    useWeb?: boolean;
+    includeCitations?: boolean;  // Whether to include citations in output
     stream?: boolean;
     onToken?: (chunk: string) => void;
 }
@@ -29,6 +31,7 @@ export interface Q8GenerationResult {
     keywords: string[];
     structureScore: { score: number; suggestions: string[] };
     ragResults: any[];
+    webResults: any[];
     validation: { isValid: boolean; suggestions: string[] };
     metadata: { promptUsed: string; tokenUsage: any; timestamp: Date };
 }
@@ -46,6 +49,7 @@ export class Q8GenerationService {
             formData: rawFormData,
             conversationHistory,
             user,
+            includeCitations,
             stream,
             onToken,
         } = request;
@@ -57,24 +61,28 @@ export class Q8GenerationService {
         const generationInput = buildQ8GenerationInput(formData, previousContextMap);
         const generationResult = stream
             ? await GenerationService.generateStream(
-                  {
-                      projectId,
-                      stage: "Q8",
-                      userInput: generationInput,
-                      previousStagesContext: previousContextMap,
-                      conversationHistory,
-                      useRag: request.useRag ?? true,
-                  },
-                  { onToken }
-              )
+                {
+                    projectId,
+                    stage: "Q8",
+                    userInput: generationInput,
+                    previousStagesContext: previousContextMap,
+                    conversationHistory,
+                    useRag: request.useRag ?? true,
+                    useWeb: request.useWeb ?? false,
+                    includeCitations: includeCitations ?? true,
+                },
+                { onToken }
+            )
             : await GenerationService.generate({
-                  projectId,
-                  stage: "Q8",
-                  userInput: generationInput,
-                  previousStagesContext: previousContextMap,
-                  conversationHistory,
-                  useRag: request.useRag ?? true,
-              });
+                projectId,
+                stage: "Q8",
+                userInput: generationInput,
+                previousStagesContext: previousContextMap,
+                conversationHistory,
+                useRag: request.useRag ?? true,
+                useWeb: request.useWeb ?? false,
+                includeCitations: includeCitations ?? true,
+            });
 
         const structureScore = computeStructureScore(formData, generationResult.ragResults.length);
         const keywords = extractQ8Keywords(generationResult.content, formData);
@@ -89,6 +97,7 @@ export class Q8GenerationService {
                 keywords,
                 structureScore,
                 rag_results: generationResult.ragResults,
+                web_results: generationResult.webResults,
             },
             {
                 overall: structureScore.score,
@@ -104,6 +113,7 @@ export class Q8GenerationService {
             keywords,
             structureScore,
             ragResults: generationResult.ragResults,
+            webResults: generationResult.webResults,
             validation: {
                 isValid: validation.isValid,
                 suggestions: [...validation.suggestions, ...structureScore.suggestions],

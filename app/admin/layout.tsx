@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Settings, Database, FileText } from "lucide-react";
+import { LayoutDashboard, Settings, Database, FileText, Globe } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LogoutButton from "@/components/dashboard/LogoutButton";
@@ -27,6 +27,11 @@ export default function AdminLayout({
             name: "Storage",
             href: "/admin/settings/storage",
             icon: Database,
+        },
+        {
+            name: "Web Search",
+            href: "/admin/settings/web-search",
+            icon: Globe,
         },
         {
             name: "Prompts",

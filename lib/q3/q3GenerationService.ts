@@ -20,6 +20,8 @@ export interface Q3GenerationRequest {
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
     user?: { id?: string; name?: string };
     useRag?: boolean;
+    useWeb?: boolean;
+    includeCitations?: boolean;  // Whether to include citations in output
     stream?: boolean;
     onToken?: (chunk: string) => void;
 }
@@ -31,6 +33,7 @@ export interface Q3GenerationResult {
     positive: boolean;
     suggestions: string[];
     ragResults: any[];
+    webResults: any[];
     metadata: {
         promptUsed: string;
         tokenUsage: any;
@@ -51,6 +54,7 @@ export class Q3GenerationService {
             formData: rawFormData,
             conversationHistory,
             user,
+            includeCitations,
             stream,
             onToken,
         } = request;
@@ -66,24 +70,28 @@ export class Q3GenerationService {
         // Generate (streaming if requested)
         const generationResult = stream
             ? await GenerationService.generateStream(
-                  {
-                      projectId,
-                      stage: "Q3",
-                      userInput: generationInput,
-                      previousStagesContext: previousContextMap,
-                      conversationHistory,
-                      useRag: request.useRag ?? true,
-                  },
-                  { onToken }
-              )
+                {
+                    projectId,
+                    stage: "Q3",
+                    userInput: generationInput,
+                    previousStagesContext: previousContextMap,
+                    conversationHistory,
+                    useRag: request.useRag ?? true,
+                    useWeb: request.useWeb ?? false,
+                    includeCitations: includeCitations ?? true,
+                },
+                { onToken }
+            )
             : await GenerationService.generate({
-                  projectId,
-                  stage: "Q3",
-                  userInput: generationInput,
-                  previousStagesContext: previousContextMap,
-                  conversationHistory,
-                  useRag: request.useRag ?? true,
-              });
+                projectId,
+                stage: "Q3",
+                userInput: generationInput,
+                previousStagesContext: previousContextMap,
+                conversationHistory,
+                useRag: request.useRag ?? true,
+                useWeb: request.useWeb ?? false,
+                includeCitations: includeCitations ?? true,
+            });
 
         // Validation & concept extraction
         const validation = this.contentValidator.validate(generationResult.content);
@@ -103,6 +111,7 @@ export class Q3GenerationService {
                 positive: positiveCheck.isPositive,
                 suggestions: [...validation.suggestions, ...positiveCheck.suggestions],
                 rag_results: generationResult.ragResults,
+                web_results: generationResult.webResults,
             },
             {
                 overall: positiveCheck.isPositive ? 90 : 65,
@@ -120,6 +129,7 @@ export class Q3GenerationService {
             positive: positiveCheck.isPositive,
             suggestions: [...validation.suggestions, ...positiveCheck.suggestions],
             ragResults: generationResult.ragResults,
+            webResults: generationResult.webResults,
             metadata: {
                 promptUsed: generationResult.metadata.promptUsed,
                 tokenUsage: generationResult.usage,

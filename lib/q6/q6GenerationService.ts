@@ -20,6 +20,8 @@ export interface Q6GenerationRequest {
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
     user?: { id?: string; name?: string };
     useRag?: boolean;
+    useWeb?: boolean;
+    includeCitations?: boolean;  // Whether to include citations in output
     stream?: boolean;
     onToken?: (chunk: string) => void;
 }
@@ -29,6 +31,7 @@ export interface Q6GenerationResult {
     keywords: string[];
     consistency: { score: number; suggestions: string[] };
     ragResults: any[];
+    webResults: any[];
     validation: { isValid: boolean; suggestions: string[] };
     metadata: { promptUsed: string; tokenUsage: any; timestamp: Date };
 }
@@ -46,6 +49,7 @@ export class Q6GenerationService {
             formData: rawFormData,
             conversationHistory,
             user,
+            includeCitations,
             stream,
             onToken,
         } = request;
@@ -57,24 +61,28 @@ export class Q6GenerationService {
         const generationInput = buildQ6GenerationInput(formData, previousContextMap);
         const generationResult = stream
             ? await GenerationService.generateStream(
-                  {
-                      projectId,
-                      stage: "Q6",
-                      userInput: generationInput,
-                      previousStagesContext: previousContextMap,
-                      conversationHistory,
-                      useRag: request.useRag ?? true,
-                  },
-                  { onToken }
-              )
+                {
+                    projectId,
+                    stage: "Q6",
+                    userInput: generationInput,
+                    previousStagesContext: previousContextMap,
+                    conversationHistory,
+                    useRag: request.useRag ?? true,
+                    useWeb: request.useWeb ?? false,
+                    includeCitations: includeCitations ?? true,
+                },
+                { onToken }
+            )
             : await GenerationService.generate({
-                  projectId,
-                  stage: "Q6",
-                  userInput: generationInput,
-                  previousStagesContext: previousContextMap,
-                  conversationHistory,
-                  useRag: request.useRag ?? true,
-              });
+                projectId,
+                stage: "Q6",
+                userInput: generationInput,
+                previousStagesContext: previousContextMap,
+                conversationHistory,
+                useRag: request.useRag ?? true,
+                useWeb: request.useWeb ?? false,
+                includeCitations: includeCitations ?? true,
+            });
 
         const consistency = computeValueConsistencyScore(formData, generationResult.ragResults.length);
         const keywords = extractQ6Keywords(generationResult.content, formData);
@@ -89,6 +97,7 @@ export class Q6GenerationService {
                 keywords,
                 consistency,
                 rag_results: generationResult.ragResults,
+                web_results: generationResult.webResults,
             },
             {
                 overall: consistency.score,
@@ -104,6 +113,7 @@ export class Q6GenerationService {
             keywords,
             consistency,
             ragResults: generationResult.ragResults,
+            webResults: generationResult.webResults,
             validation: {
                 isValid: validation.isValid,
                 suggestions: [...validation.suggestions, ...consistency.suggestions],

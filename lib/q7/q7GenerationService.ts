@@ -20,6 +20,8 @@ export interface Q7GenerationRequest {
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
     user?: { id?: string; name?: string };
     useRag?: boolean;
+    useWeb?: boolean;
+    includeCitations?: boolean;  // Whether to include citations in output
     stream?: boolean;
     onToken?: (chunk: string) => void;
 }
@@ -33,6 +35,7 @@ export interface Q7GenerationResult {
         suggestions: string[];
     };
     ragResults: any[];
+    webResults: any[];
     validation: { isValid: boolean; suggestions: string[] };
     metadata: { promptUsed: string; tokenUsage: any; timestamp: Date };
 }
@@ -50,6 +53,7 @@ export class Q7GenerationService {
             formData: rawFormData,
             conversationHistory,
             user,
+            includeCitations,
             stream,
             onToken,
         } = request;
@@ -63,24 +67,28 @@ export class Q7GenerationService {
         const generationInput = buildQ7GenerationInput(formData, previousContextMap);
         const generationResult = stream
             ? await GenerationService.generateStream(
-                  {
-                      projectId,
-                      stage: "Q7",
-                      userInput: generationInput,
-                      previousStagesContext: previousContextMap,
-                      conversationHistory,
-                      useRag: request.useRag ?? true,
-                  },
-                  { onToken }
-              )
+                {
+                    projectId,
+                    stage: "Q7",
+                    userInput: generationInput,
+                    previousStagesContext: previousContextMap,
+                    conversationHistory,
+                    useRag: request.useRag ?? true,
+                    useWeb: request.useWeb ?? false,
+                    includeCitations: includeCitations ?? true,
+                },
+                { onToken }
+            )
             : await GenerationService.generate({
-                  projectId,
-                  stage: "Q7",
-                  userInput: generationInput,
-                  previousStagesContext: previousContextMap,
-                  conversationHistory,
-                  useRag: request.useRag ?? true,
-              });
+                projectId,
+                stage: "Q7",
+                userInput: generationInput,
+                previousStagesContext: previousContextMap,
+                conversationHistory,
+                useRag: request.useRag ?? true,
+                useWeb: request.useWeb ?? false,
+                includeCitations: includeCitations ?? true,
+            });
 
         const keywords = extractQ7Keywords(generationResult.content, formData);
         const validation = this.contentValidator.validate(generationResult.content);
@@ -94,6 +102,7 @@ export class Q7GenerationService {
                 keywords,
                 gapAnalysis,
                 rag_results: generationResult.ragResults,
+                web_results: generationResult.webResults,
             },
             {
                 overall: gapAnalysis.score,
@@ -109,6 +118,7 @@ export class Q7GenerationService {
             keywords,
             gapAnalysis,
             ragResults: generationResult.ragResults,
+            webResults: generationResult.webResults,
             validation: {
                 isValid: validation.isValid,
                 suggestions: [...validation.suggestions, ...gapAnalysis.suggestions],

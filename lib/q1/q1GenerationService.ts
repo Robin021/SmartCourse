@@ -29,6 +29,8 @@ export interface Q1GenerationRequest {
     schoolInfo?: Record<string, any>;
     conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
     useRag?: boolean;
+    useWeb?: boolean;
+    includeCitations?: boolean;  // Whether to include citations in output
     stream?: boolean;
     onToken?: (chunk: string) => void;
 }
@@ -37,6 +39,7 @@ export interface Q1GenerationResult {
     content: string;
     swotAnalysis: SWOTAnalysisResult;
     ragResults: any[];
+    webResults: any[];
     validation: {
         isValid: boolean;
         suggestions: string[];
@@ -76,6 +79,8 @@ export class Q1GenerationService {
             schoolInfo,
             conversationHistory,
             useRag,
+            useWeb,
+            includeCitations,
             stream,
             onToken,
         } = request;
@@ -92,32 +97,36 @@ export class Q1GenerationService {
         // 4. Call GenerationService
         const generationResult = stream
             ? await GenerationService.generateStream(
-                  {
-                      projectId,
-                      stage: 'Q1',
-                      userInput,
-                      schoolInfo: schoolInfo || {
-                          name: formData.school_name,
-                          region: formData.school_region,
-                          type: formData.school_type,
-                      },
-                      conversationHistory,
-                      useRag: useRag ?? true,
-                  },
-                  { onToken }
-              )
+                {
+                    projectId,
+                    stage: 'Q1',
+                    userInput,
+                    schoolInfo: schoolInfo || {
+                        name: formData.school_name,
+                        region: formData.school_region,
+                        type: formData.school_type,
+                    },
+                    conversationHistory,
+                    useRag: useRag ?? true,
+                    useWeb: useWeb ?? false,
+                    includeCitations: includeCitations ?? true,
+                },
+                { onToken }
+            )
             : await GenerationService.generate({
-                  projectId,
-                  stage: 'Q1',
-                  userInput,
-                  schoolInfo: schoolInfo || {
-                      name: formData.school_name,
-                      region: formData.school_region,
-                      type: formData.school_type,
-                  },
-                  conversationHistory,
-                  useRag: useRag ?? true,
-              });
+                projectId,
+                stage: 'Q1',
+                userInput,
+                schoolInfo: schoolInfo || {
+                    name: formData.school_name,
+                    region: formData.school_region,
+                    type: formData.school_type,
+                },
+                conversationHistory,
+                useRag: useRag ?? true,
+                useWeb: useWeb ?? false,
+                includeCitations: includeCitations ?? true,
+            });
 
         // 5. Validate generated content
         const contentValidation = this.contentValidator.validate(generationResult.content);
@@ -140,6 +149,7 @@ export class Q1GenerationService {
                 swotScores: swotAnalysis.dimensionScores,
                 overallScore: swotAnalysis.overallScore,
                 analysis: swotAnalysis.analysis,
+                web_results: generationResult.webResults,
             },
             {
                 overall: swotAnalysis.overallScore,
@@ -154,6 +164,7 @@ export class Q1GenerationService {
             content: generationResult.content,
             swotAnalysis,
             ragResults: generationResult.ragResults,
+            webResults: generationResult.webResults,
             validation,
             metadata: {
                 promptUsed: generationResult.metadata.promptUsed,
@@ -195,25 +206,25 @@ export class Q1GenerationService {
             school_name: formData.school_name || '',
             school_region: formData.school_region || '',
             school_type: formData.school_type || '',
-            
+
             // SWOT content
             strengths: strengthsText,
             weaknesses: weaknessesText,
             opportunities: opportunitiesText,
             threats: threatsText,
-            
+
             // SWOT scores
             strengths_score: swotAnalysis.dimensionScores.strengths,
             weaknesses_score: swotAnalysis.dimensionScores.weaknesses,
             opportunities_score: swotAnalysis.dimensionScores.opportunities,
             threats_score: swotAnalysis.dimensionScores.threats,
             overall_score: swotAnalysis.overallScore,
-            
+
             // Analysis insights
             strongest_areas: swotAnalysis.analysis.strongestAreas.join('、'),
             areas_for_improvement: swotAnalysis.analysis.areasForImprovement.join('、'),
             strategic_recommendations: swotAnalysis.analysis.strategicRecommendations.join('\n'),
-            
+
             // Additional notes
             additional_notes: formData.additional_notes || '',
         };
@@ -263,7 +274,7 @@ export class Q1GenerationService {
     ): Promise<Q1GenerationResult> {
         // Get existing stage data
         const stageData = await stageService.getStageData(projectId, 'Q1');
-        
+
         if (!stageData.input) {
             throw new Error('No existing Q1 input found. Please fill in the SWOT form first.');
         }

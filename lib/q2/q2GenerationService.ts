@@ -25,6 +25,8 @@ export interface Q2GenerationRequest {
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
     user?: { id?: string; name?: string };
     useRag?: boolean;
+    useWeb?: boolean;
+    includeCitations?: boolean;  // Whether to include citations in output
     stream?: boolean;
     onToken?: (chunk: string) => void;
 }
@@ -34,6 +36,7 @@ export interface Q2GenerationResult {
     keywords: string[];
     theoryFitScore: number;
     ragResults: any[];
+    webResults: any[];
     validation: {
         isValid: boolean;
         suggestions: string[];
@@ -62,6 +65,8 @@ export class Q2GenerationService {
             conversationHistory,
             user,
             useRag,
+            useWeb,
+            includeCitations,
             stream,
             onToken,
         } = request;
@@ -77,24 +82,28 @@ export class Q2GenerationService {
         // 3) Call shared GenerationService
         const generationResult = stream
             ? await GenerationService.generateStream(
-                  {
-                      projectId,
-                      stage: "Q2",
-                      userInput: generationInput,
-                      previousStagesContext: previousContextMap,
-                      conversationHistory,
-                      useRag: useRag ?? true,
-                  },
-                  { onToken }
-              )
+                {
+                    projectId,
+                    stage: "Q2",
+                    userInput: generationInput,
+                    previousStagesContext: previousContextMap,
+                    conversationHistory,
+                    useRag: useRag ?? true,
+                    useWeb: useWeb ?? false,
+                    includeCitations: includeCitations ?? true,
+                },
+                { onToken }
+            )
             : await GenerationService.generate({
-                  projectId,
-                  stage: "Q2",
-                  userInput: generationInput,
-                  previousStagesContext: previousContextMap,
-                  conversationHistory,
-                  useRag: useRag ?? true,
-              });
+                projectId,
+                stage: "Q2",
+                userInput: generationInput,
+                previousStagesContext: previousContextMap,
+                conversationHistory,
+                useRag: useRag ?? true,
+                useWeb: useWeb ?? false,
+                includeCitations: includeCitations ?? true,
+            });
 
         // 4) Evaluate and enrich results
         const theoryFitScore = computeTheoryFitScore(formData, generationResult.ragResults.length);
@@ -116,6 +125,7 @@ export class Q2GenerationService {
                 regional_culture: formData.regional_culture,
                 school_profile: formData.school_profile,
                 rag_results: generationResult.ragResults,
+                web_results: generationResult.webResults,
             },
             {
                 overall: theoryFitScore,
@@ -138,6 +148,7 @@ export class Q2GenerationService {
             keywords,
             theoryFitScore,
             ragResults: generationResult.ragResults,
+            webResults: generationResult.webResults,
             validation,
             metadata: {
                 promptUsed: generationResult.metadata.promptUsed,
