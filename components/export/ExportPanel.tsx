@@ -244,7 +244,7 @@ export function ExportPanel({ projectId, stages }: ExportPanelProps) {
           <button
             onClick={handleExport}
             disabled={isExporting}
-            className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-500 disabled:opacity-60"
+            className="rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-cyan-500 disabled:opacity-60"
           >
             {isExporting ? "导出中..." : "导出"}
           </button>
@@ -259,7 +259,7 @@ export function ExportPanel({ projectId, stages }: ExportPanelProps) {
             value={selectedTemplate}
             onChange={(e) => setSelectedTemplate(e.target.value)}
             disabled={loadingTemplates}
-            className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-sm text-foreground shadow-sm focus:border-indigo-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
+            className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-sm text-foreground shadow-sm focus:border-cyan-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
           >
             {loadingTemplates ? (
               <option value="">加载中...</option>
@@ -282,7 +282,7 @@ export function ExportPanel({ projectId, stages }: ExportPanelProps) {
           <select
             value={format}
             onChange={(e) => setFormat(e.target.value as ExportFormat)}
-            className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-sm text-foreground shadow-sm focus:border-indigo-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
+            className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-sm text-foreground shadow-sm focus:border-cyan-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
           >
             {supportedFormats.includes("text") && (
               <option value="text">文本 (Markdown)</option>
@@ -306,7 +306,7 @@ export function ExportPanel({ projectId, stages }: ExportPanelProps) {
           <p className="text-xs text-muted-foreground">
             {currentTemplate.description}
           </p>
-          <p className="mt-1 text-xs text-indigo-600 dark:text-indigo-400">
+          <p className="mt-1 text-xs text-cyan-600 dark:text-cyan-400">
             适用场景：{currentTemplate.usageScenario}
           </p>
         </div>
@@ -356,8 +356,8 @@ export function ExportPanel({ projectId, stages }: ExportPanelProps) {
                   type="button"
                   onClick={() => toggleStage(stage.stage_id)}
                   className={`rounded-full border px-3 py-1 text-[11px] transition ${active
-                    ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-900/30 dark:text-indigo-200"
-                    : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-indigo-300 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+                    ? "border-cyan-500 bg-cyan-50 text-cyan-700 dark:border-cyan-400 dark:bg-cyan-900/30 dark:text-cyan-200"
+                    : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-cyan-300 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
                     }`}
                 >
                   {stage.stage_id} {stage.name}

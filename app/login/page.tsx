@@ -39,18 +39,22 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-zinc-900 px-4">
-            <div className="w-full max-w-md space-y-8">
+        <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-cyan-50/50 to-white px-4 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+            <div className="pointer-events-none absolute inset-0">
+                <div className="absolute -top-20 right-0 h-64 w-64 rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-500/10" />
+                <div className="absolute -bottom-24 left-0 h-72 w-72 rounded-full bg-emerald-300/20 blur-3xl dark:bg-emerald-500/10" />
+            </div>
+            <div className="relative w-full max-w-md space-y-8">
                 <div className="text-center">
-                    <h2 className="mt-6 text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+                    <h2 className="mt-6 text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
                         Sign in to SmartCourse
                     </h2>
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
                         Or use the demo account: teacher@demo.com / password
                     </p>
                 </div>
 
-                <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+                <div className="rounded-2xl border border-slate-200 bg-white/90 text-card-foreground shadow-xl backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
                     <div className="p-6 space-y-6">
                         <form onSubmit={handleSubmit} className="space-y-4">
                             {error && (

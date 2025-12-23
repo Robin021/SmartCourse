@@ -39,26 +39,30 @@ export default function NewProjectPage() {
     };
 
     return (
-        <main className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 p-4 dark:bg-zinc-950">
-            <div className="w-full max-w-md space-y-8">
+        <main className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-cyan-50/40 to-white p-4 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+            <div className="pointer-events-none absolute inset-0">
+                <div className="absolute -top-16 right-0 h-64 w-64 rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-500/10" />
+                <div className="absolute -bottom-24 left-6 h-72 w-72 rounded-full bg-emerald-300/20 blur-3xl dark:bg-emerald-500/10" />
+            </div>
+            <div className="relative w-full max-w-md space-y-8">
                 <div className="flex items-center gap-4">
                     <Link
                         href="/"
-                        className="rounded-full p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                        className="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
                     >
                         <ArrowLeft className="h-5 w-5" />
                     </Link>
-                    <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                    <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">
                         Create New Project
                     </h1>
                 </div>
 
-                <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
+                <div className="rounded-2xl border border-slate-200 bg-white/90 p-8 shadow-xl backdrop-blur dark:border-slate-800 dark:bg-slate-900/60">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
                             <label
                                 htmlFor="name"
-                                className="text-sm font-medium text-zinc-900 dark:text-zinc-100"
+                                className="text-sm font-medium text-slate-900 dark:text-white"
                             >
                                 Project Name
                             </label>
@@ -69,7 +73,7 @@ export default function NewProjectPage() {
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="e.g. Fall 2025 School Plan"
                                 required
-                                className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-2 text-zinc-900 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+                                className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-slate-900 outline-none transition-all focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
                             />
                         </div>
 
@@ -82,7 +86,7 @@ export default function NewProjectPage() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="flex w-full items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white transition-all hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+                            className="flex w-full items-center justify-center rounded-lg bg-cyan-600 px-4 py-2 font-medium text-white shadow-lg shadow-cyan-500/20 transition-all hover:bg-cyan-500 disabled:opacity-50 dark:bg-cyan-500 dark:text-white dark:hover:bg-cyan-400"
                         >
                             {isLoading ? (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

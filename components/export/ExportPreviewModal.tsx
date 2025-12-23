@@ -38,7 +38,7 @@ export function ExportPreviewModal({
             <div className="flex h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-zinc-900">
                 <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
                     <div className="flex items-center gap-2">
-                        <div className="rounded-lg bg-indigo-100 p-2 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
+                        <div className="rounded-lg bg-cyan-100 p-2 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300">
                             <FileText className="h-5 w-5" />
                         </div>
                         <div>
@@ -59,7 +59,7 @@ export function ExportPreviewModal({
                 <div className="flex-1 overflow-y-auto bg-zinc-50/50 p-6 dark:bg-zinc-900/50">
                     {isLoading ? (
                         <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
-                            <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600 dark:border-indigo-900 dark:border-t-indigo-500" />
+                            <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-200 border-t-cyan-600 dark:border-cyan-900 dark:border-t-cyan-500" />
                             <p className="text-sm">正在生成预览...</p>
                         </div>
                     ) : error ? (
@@ -94,7 +94,7 @@ export function ExportPreviewModal({
                                                     </span>
                                                 )}
                                                 {section.score !== undefined && (
-                                                    <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                                                    <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400">
                                                         评分: {section.score}
                                                     </span>
                                                 )}

@@ -25,10 +25,10 @@ export default function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Link
       href={`/project/${project._id}`}
-      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm transition-all hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 dark:border-zinc-800 dark:bg-zinc-900/50"
+      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-500/10 dark:border-slate-800 dark:bg-slate-900/50"
     >
       <div className="mb-4 flex items-start justify-between">
-        <div className="rounded-lg bg-indigo-50 p-3 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+        <div className="rounded-lg bg-cyan-50 p-3 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-300">
           <svg
             className="h-6 w-6"
             fill="none"
@@ -49,22 +49,22 @@ export default function ProjectCard({ project }: ProjectCardProps) {
       </div>
 
       <div>
-        <h3 className="mb-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+        <h3 className="mb-2 text-xl font-semibold text-slate-900 transition-colors group-hover:text-cyan-600 dark:text-white dark:group-hover:text-cyan-300">
           {project.name}
         </h3>
-        <div className="flex items-center gap-4 text-sm text-zinc-500 dark:text-zinc-400">
+        <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
           <span className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
             {date}
           </span>
-          <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
             {project.current_stage}
           </span>
         </div>
       </div>
 
-      <div className="absolute bottom-6 right-6 opacity-0 transform translate-x-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0">
-        <ChevronRight className="h-6 w-6 text-indigo-500" />
+      <div className="absolute bottom-6 right-6 translate-x-4 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+        <ChevronRight className="h-6 w-6 text-cyan-500" />
       </div>
     </Link>
   );

@@ -201,7 +201,7 @@ export default function WebSearchSettingsPage() {
                   onChange={(e) =>
                     setConfig((prev) => ({ ...prev, enabled: e.target.checked }))
                   }
-                  className="h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-200 dark:border-zinc-700 dark:bg-zinc-900"
+                  className="h-4 w-4 rounded border-zinc-300 text-cyan-600 focus:ring-cyan-200 dark:border-zinc-700 dark:bg-zinc-900"
                 />
                 Enable web search
               </label>
@@ -220,7 +220,7 @@ export default function WebSearchSettingsPage() {
                       max_k: Number(e.target.value),
                     }))
                   }
-                  className="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                  className="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                 />
               </label>
               <label className="text-sm text-zinc-600 dark:text-zinc-300">
@@ -231,7 +231,7 @@ export default function WebSearchSettingsPage() {
                   onChange={(e) =>
                     setConfig((prev) => ({ ...prev, language: e.target.value }))
                   }
-                  className="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                  className="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                 />
               </label>
               <label className="text-sm text-zinc-600 dark:text-zinc-300">
@@ -242,7 +242,7 @@ export default function WebSearchSettingsPage() {
                   onChange={(e) =>
                     setConfig((prev) => ({ ...prev, region: e.target.value }))
                   }
-                  className="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                  className="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                 />
               </label>
             </div>
@@ -267,7 +267,7 @@ export default function WebSearchSettingsPage() {
                       serper_api_key: e.target.value,
                     }))
                   }
-                  className="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                  className="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                 />
               </label>
               <label className="text-sm text-zinc-600 dark:text-zinc-300">
@@ -281,7 +281,7 @@ export default function WebSearchSettingsPage() {
                       firecrawl_api_key: e.target.value,
                     }))
                   }
-                  className="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                  className="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                 />
               </label>
               <label className="text-sm text-zinc-600 dark:text-zinc-300">
@@ -295,7 +295,7 @@ export default function WebSearchSettingsPage() {
                       jina_api_key: e.target.value,
                     }))
                   }
-                  className="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                  className="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                 />
               </label>
             </div>
@@ -304,7 +304,7 @@ export default function WebSearchSettingsPage() {
                 type="button"
                 onClick={handleTestConnections}
                 disabled={isTesting}
-                className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 shadow-sm transition hover:border-indigo-200 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-70 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:border-indigo-500/50"
+                className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 shadow-sm transition hover:border-cyan-200 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-70 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:border-cyan-500/50"
               >
                 {isTesting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                 Test connections
@@ -333,7 +333,7 @@ export default function WebSearchSettingsPage() {
                       use_firecrawl: e.target.checked,
                     }))
                   }
-                  className="h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-200 dark:border-zinc-700 dark:bg-zinc-900"
+                  className="h-4 w-4 rounded border-zinc-300 text-cyan-600 focus:ring-cyan-200 dark:border-zinc-700 dark:bg-zinc-900"
                 />
                 Use Firecrawl (primary)
               </label>
@@ -347,7 +347,7 @@ export default function WebSearchSettingsPage() {
                       use_jina: e.target.checked,
                     }))
                   }
-                  className="h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-200 dark:border-zinc-700 dark:bg-zinc-900"
+                  className="h-4 w-4 rounded border-zinc-300 text-cyan-600 focus:ring-cyan-200 dark:border-zinc-700 dark:bg-zinc-900"
                 />
                 Use Jina (fallback)
               </label>
@@ -359,7 +359,7 @@ export default function WebSearchSettingsPage() {
           <button
             type="submit"
             disabled={isSaving}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex items-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isSaving ? (
               <Loader2 className="h-4 w-4 animate-spin" />

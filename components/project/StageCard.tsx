@@ -21,8 +21,8 @@ export default function StageCard({ stage, projectId }: StageCardProps) {
         },
         IN_PROGRESS: {
             icon: Clock,
-            color: "text-indigo-500",
-            bg: "bg-indigo-50 dark:bg-indigo-500/10",
+            color: "text-cyan-500",
+            bg: "bg-cyan-50 dark:bg-cyan-500/10",
             text: "In Progress",
         },
         COMPLETED: {
@@ -39,7 +39,7 @@ export default function StageCard({ stage, projectId }: StageCardProps) {
     return (
         <Link
             href={`/project/${projectId}/stage/${stage.stage_id}`}
-            className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-zinc-200 bg-white p-6 shadow-sm transition-all hover:border-indigo-500/50 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/50"
+            className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-cyan-400/50 hover:shadow-md dark:border-slate-800 dark:bg-slate-900/50"
         >
             <div className="flex items-start gap-4">
                 <div
@@ -48,13 +48,13 @@ export default function StageCard({ stage, projectId }: StageCardProps) {
                     <Icon className="h-5 w-5" />
                 </div>
                 <div>
-                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                         {stage.name}
                     </h3>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
                         {stage.description}
                     </p>
-                    <div className="mt-2 inline-flex items-center rounded-full border border-zinc-200 px-2.5 py-0.5 text-xs font-medium dark:border-zinc-700">
+                    <div className="mt-2 inline-flex items-center rounded-full border border-slate-200 px-2.5 py-0.5 text-xs font-medium dark:border-slate-700">
                         <span className={`mr-1.5 h-2 w-2 rounded-full ${config.color.replace("text-", "bg-")}`} />
                         {config.text}
                     </div>
@@ -62,7 +62,7 @@ export default function StageCard({ stage, projectId }: StageCardProps) {
             </div>
 
             <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full text-zinc-400 transition-colors group-hover:bg-zinc-100 group-hover:text-zinc-900 dark:group-hover:bg-zinc-800 dark:group-hover:text-zinc-100">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition-colors group-hover:bg-slate-100 group-hover:text-slate-900 dark:group-hover:bg-slate-800 dark:group-hover:text-white">
                     <ArrowRight className="h-5 w-5" />
                 </div>
             </div>

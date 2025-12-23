@@ -207,7 +207,7 @@ export default function LLMSettingsPage() {
         {!isEditing && (
           <button
             onClick={startNew}
-            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            className="flex items-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700"
           >
             <Plus className="h-4 w-4" />
             Add Provider
@@ -244,7 +244,7 @@ export default function LLMSettingsPage() {
                       name: e.target.value,
                     })
                   }
-                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-800 dark:bg-zinc-950"
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 dark:border-zinc-800 dark:bg-zinc-950"
                   placeholder="e.g. DeepSeek Chat"
                 />
               </div>
@@ -260,7 +260,7 @@ export default function LLMSettingsPage() {
                       type: e.target.value as any,
                     })
                   }
-                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-800 dark:bg-zinc-950"
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 dark:border-zinc-800 dark:bg-zinc-950"
                 >
                   <option value="chat">Chat (LLM)</option>
                   <option value="embedding">Embedding</option>
@@ -280,7 +280,7 @@ export default function LLMSettingsPage() {
                       model: e.target.value,
                     })
                   }
-                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-800 dark:bg-zinc-950"
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 dark:border-zinc-800 dark:bg-zinc-950"
                   placeholder="e.g. deepseek-chat"
                 />
               </div>
@@ -298,7 +298,7 @@ export default function LLMSettingsPage() {
                       base_url: e.target.value,
                     })
                   }
-                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-800 dark:bg-zinc-950"
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 dark:border-zinc-800 dark:bg-zinc-950"
                   placeholder="https://api.deepseek.com"
                 />
               </div>
@@ -321,7 +321,7 @@ export default function LLMSettingsPage() {
                           : parsed,
                     });
                   }}
-                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-800 dark:bg-zinc-950"
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 dark:border-zinc-800 dark:bg-zinc-950"
                   placeholder="e.g. 4096"
                 />
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -344,7 +344,7 @@ export default function LLMSettingsPage() {
                     api_key: e.target.value,
                   })
                 }
-                className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-800 dark:bg-zinc-950"
+                className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 dark:border-zinc-800 dark:bg-zinc-950"
                 placeholder="sk-..."
               />
             </div>
@@ -360,7 +360,7 @@ export default function LLMSettingsPage() {
                     is_active: e.target.checked,
                   })
                 }
-                className="h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                className="h-4 w-4 rounded border-zinc-300 text-cyan-600 focus:ring-cyan-500"
               />
               <label
                 htmlFor="isActive"
@@ -396,13 +396,13 @@ export default function LLMSettingsPage() {
           {providers.map((p) => (
             <div
               key={p._id}
-              className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition-all hover:border-indigo-500/50 dark:border-zinc-800 dark:bg-zinc-900"
+              className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition-all hover:border-cyan-500/50 dark:border-zinc-800 dark:bg-zinc-900"
             >
               <div className="flex items-center gap-4">
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-full ${
                     p.type === "chat"
-                      ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10"
+                      ? "bg-cyan-50 text-cyan-600 dark:bg-cyan-500/10"
                       : "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10"
                   }`}
                 >
@@ -440,7 +440,7 @@ export default function LLMSettingsPage() {
                 </button>
                 <button
                   onClick={() => handleTest(p)}
-                  className="rounded-lg px-3 py-2 text-xs font-medium border border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-300 dark:hover:bg-indigo-900/30"
+                  className="rounded-lg px-3 py-2 text-xs font-medium border border-cyan-200 text-cyan-700 hover:bg-cyan-50 dark:border-cyan-800 dark:text-cyan-300 dark:hover:bg-cyan-900/30"
                 >
                   {testing[p._id || p.name]?.status === "loading"
                     ? "Testing..."
@@ -465,7 +465,7 @@ export default function LLMSettingsPage() {
               </p>
               <button
                 onClick={startNew}
-                className="mt-4 text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+                className="mt-4 text-sm font-medium text-cyan-600 hover:underline dark:text-cyan-400"
               >
                 Add your first provider
               </button>

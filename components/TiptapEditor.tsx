@@ -318,7 +318,7 @@ export function TiptapEditor({
         <div className="flex-1" />
         <button
           onClick={() => onApply?.(content)}
-          className="px-2 py-1 text-sm bg-blue-100 text-blue-700 rounded flex items-center gap-1 hover:bg-blue-200 transition-colors"
+          className="flex items-center gap-1 rounded bg-cyan-100 px-2 py-1 text-sm text-cyan-700 transition-colors hover:bg-cyan-200"
         >
           📝 应用到表单
         </button>

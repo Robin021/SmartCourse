@@ -46,7 +46,7 @@ export default function MessageInput({
       onSubmit={handleSubmit}
       className="border-t border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
     >
-      <div className="relative flex items-end gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-2 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500/20 dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="relative flex items-end gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-2 focus-within:border-cyan-500 focus-within:ring-1 focus-within:ring-cyan-500/20 dark:border-zinc-800 dark:bg-zinc-950">
         <textarea
           ref={textareaRef}
           value={input}
@@ -69,7 +69,7 @@ export default function MessageInput({
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
-            className="mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white transition-all hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600"
+            className="mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-600 text-white transition-all hover:bg-cyan-700 disabled:opacity-50 disabled:hover:bg-cyan-600"
           >
             <Send className="h-4 w-4" />
           </button>

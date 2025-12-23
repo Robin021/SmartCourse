@@ -46,11 +46,11 @@ export default function AdminLayout({
     ];
 
     return (
-        <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950">
+        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
             {/* Sidebar */}
-            <aside className="fixed inset-y-0 left-0 w-64 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-                <div className="flex h-16 items-center border-b border-zinc-200 px-6 dark:border-zinc-800">
-                    <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+            <aside className="fixed inset-y-0 left-0 w-64 border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex h-16 items-center border-b border-slate-200 px-6 dark:border-slate-800">
+                    <span className="text-lg font-semibold text-slate-900 dark:text-white">
                         SmartCourse Admin
                     </span>
                 </div>
@@ -64,8 +64,8 @@ export default function AdminLayout({
                                     key={item.href}
                                     href={item.href}
                                     className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive
-                                        ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
-                                        : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                                        ? "bg-cyan-50 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300"
+                                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
                                         }`}
                                 >
                                     <Icon className="h-4 w-4" />
@@ -74,7 +74,7 @@ export default function AdminLayout({
                             );
                         })}
                     </div>
-                    <div className="border-t border-zinc-200 pt-4 dark:border-zinc-800">
+                    <div className="border-t border-slate-200 pt-4 dark:border-slate-800">
                         <LogoutButton />
                     </div>
                 </nav>

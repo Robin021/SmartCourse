@@ -374,7 +374,7 @@ export default function PromptSettingsPage() {
         {!isEditing && (
           <button
             onClick={startNew}
-            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            className="flex items-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700"
           >
             <Plus className="h-4 w-4" />
             New Prompt
@@ -412,7 +412,7 @@ export default function PromptSettingsPage() {
                       name: e.target.value,
                     }))
                   }
-                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-800 dark:bg-zinc-950"
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 dark:border-zinc-800 dark:bg-zinc-950"
                   placeholder="RAG Answer Prompt"
                 />
               </div>
@@ -431,7 +431,7 @@ export default function PromptSettingsPage() {
                       key: e.target.value.replace(/\s/g, "_").toLowerCase(),
                     }))
                   }
-                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950"
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950"
                   placeholder="rag_answer"
                 />
               </div>
@@ -450,7 +450,7 @@ export default function PromptSettingsPage() {
                     description: e.target.value,
                   }))
                 }
-                className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-800 dark:bg-zinc-950"
+                className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 dark:border-zinc-800 dark:bg-zinc-950"
                 placeholder="Prompt for generating RAG answers"
               />
             </div>
@@ -469,7 +469,7 @@ export default function PromptSettingsPage() {
                     template: e.target.value,
                   }))
                 }
-                className="w-full rounded-lg border border-zinc-200 px-3 py-2 font-mono text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-800 dark:bg-zinc-950"
+                className="w-full rounded-lg border border-zinc-200 px-3 py-2 font-mono text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 dark:border-zinc-800 dark:bg-zinc-950"
                 placeholder="You are a helpful assistant. Use the following context to answer:&#10;&#10;{{context}}&#10;&#10;User Question: {{query}}"
               />
               <p className="text-xs text-zinc-500">
@@ -490,7 +490,7 @@ export default function PromptSettingsPage() {
                   {extractedVariables.map((v) => (
                     <span
                       key={v}
-                      className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400"
+                      className="rounded-full bg-cyan-100 px-2.5 py-0.5 text-xs font-medium text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-400"
                     >
                       {v}
                     </span>
@@ -549,13 +549,13 @@ export default function PromptSettingsPage() {
                         </span>
                       )}
                       {p.ab_testing?.enabled && (
-                        <span className="flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-500/20 dark:text-purple-400">
+                        <span className="flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700 dark:bg-sky-500/20 dark:text-sky-400">
                           <FlaskConical className="h-3 w-3" /> A/B Active
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-cyan-100 px-2 py-0.5 text-xs font-semibold text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-400">
                         v{p.current_version || 1}
                       </span>
                       <p className="text-sm text-zinc-500 dark:text-zinc-400">
@@ -680,7 +680,7 @@ export default function PromptSettingsPage() {
                           className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800"
                         >
                           <div className="flex items-center gap-3">
-                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400">
+                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-100 text-xs font-bold text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-400">
                               v{v.version}
                             </span>
                             <div>
@@ -701,7 +701,7 @@ export default function PromptSettingsPage() {
                                     p._id && handleRollback(p._id, v.version)
                                   }
                                   disabled={deletingVersion !== null}
-                                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-500/10 disabled:opacity-50"
+                                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-cyan-600 hover:bg-cyan-50 dark:text-cyan-400 dark:hover:bg-cyan-500/10 disabled:opacity-50"
                                 >
                                   <RotateCcw className="h-3 w-3" />
                                   回滚
@@ -755,7 +755,7 @@ export default function PromptSettingsPage() {
                         }
                         className={`relative h-5 w-9 rounded-full transition-colors ${
                           abConfig.enabled
-                            ? "bg-indigo-600"
+                            ? "bg-cyan-600"
                             : "bg-zinc-300 dark:bg-zinc-600"
                         }`}
                       >
@@ -793,8 +793,8 @@ export default function PromptSettingsPage() {
                                 }
                                 className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors ${
                                   inTest
-                                    ? "bg-indigo-600 text-white"
-                                    : "border border-zinc-300 text-zinc-500 hover:border-indigo-400 dark:border-zinc-600"
+                                    ? "bg-cyan-600 text-white"
+                                    : "border border-zinc-300 text-zinc-500 hover:border-cyan-400 dark:border-zinc-600"
                                 }`}
                               >
                                 {v}
@@ -815,7 +815,7 @@ export default function PromptSettingsPage() {
                               key={v.version}
                               className="flex items-center gap-3"
                             >
-                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400">
+                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cyan-100 text-xs font-bold text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-400">
                                 v{v.version}
                               </span>
                               <input
@@ -861,7 +861,7 @@ export default function PromptSettingsPage() {
                     <button
                       onClick={() => p._id && saveABConfig(p._id)}
                       disabled={savingAB}
-                      className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                      className="flex items-center gap-2 rounded-lg bg-cyan-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-700 disabled:opacity-50"
                     >
                       {savingAB ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -882,7 +882,7 @@ export default function PromptSettingsPage() {
               </p>
               <button
                 onClick={startNew}
-                className="mt-4 text-sm font-medium text-indigo-600 hover:underline"
+                className="mt-4 text-sm font-medium text-cyan-600 hover:underline"
               >
                 Create First Prompt
               </button>

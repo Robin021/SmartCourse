@@ -356,7 +356,7 @@ export default function KnowledgeBasePage() {
             {pendingCount > 0 && (
               <button
                 onClick={handleProcessAll}
-                className="flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 dark:hover:bg-indigo-900/50"
+                className="flex items-center gap-2 rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 hover:bg-cyan-100 dark:border-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400 dark:hover:bg-cyan-900/50"
               >
                 <Zap className="h-4 w-4" />
                 Process All ({pendingCount})
@@ -372,7 +372,7 @@ export default function KnowledgeBasePage() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
-              className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700 disabled:opacity-50"
             >
               {isUploading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -384,9 +384,9 @@ export default function KnowledgeBasePage() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-dashed border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-900/60 dark:bg-indigo-900/10">
+        <div className="rounded-lg border border-dashed border-cyan-200 bg-cyan-50/40 p-4 dark:border-cyan-900/60 dark:bg-cyan-900/10">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-indigo-800 dark:text-indigo-200">
+            <div className="text-sm font-medium text-cyan-800 dark:text-cyan-200">
               适用阶段
             </div>
             <button
@@ -395,7 +395,7 @@ export default function KnowledgeBasePage() {
                   prev.length === STAGES.length ? [] : [...STAGES]
                 )
               }
-              className="text-xs text-indigo-600 hover:underline"
+              className="text-xs text-cyan-600 hover:underline"
             >
               {selectedStages.length === STAGES.length ? "清空" : "全选"}
             </button>
@@ -406,11 +406,11 @@ export default function KnowledgeBasePage() {
               return (
                 <label
                   key={stage}
-                  className="flex items-center gap-2 text-sm text-indigo-900 dark:text-indigo-100"
+                  className="flex items-center gap-2 text-sm text-cyan-900 dark:text-cyan-100"
                 >
                   <input
                     type="checkbox"
-                    className="h-4 w-4 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
+                    className="h-4 w-4 rounded border-cyan-300 text-cyan-600 focus:ring-cyan-500"
                     checked={checked}
                     onChange={(e) => {
                       setSelectedStages((prev) =>
@@ -425,7 +425,7 @@ export default function KnowledgeBasePage() {
               );
             })}
           </div>
-          <p className="mt-2 text-xs text-indigo-700/80 dark:text-indigo-200/80">
+          <p className="mt-2 text-xs text-cyan-700/80 dark:text-cyan-200/80">
             不勾选则默认适用于所有阶段；生成时会优先使用当前阶段的文档。
           </p>
         </div>
@@ -612,7 +612,7 @@ export default function KnowledgeBasePage() {
                         <div className="flex gap-1">
                           <button
                             onClick={() => handleUpdateStages(doc._id)}
-                            className="rounded bg-indigo-600 px-2 py-0.5 text-xs text-white hover:bg-indigo-700"
+                            className="rounded bg-cyan-600 px-2 py-0.5 text-xs text-white hover:bg-cyan-700"
                           >
                             <Check className="h-3 w-3" />
                           </button>
@@ -634,7 +634,7 @@ export default function KnowledgeBasePage() {
                           doc.stage_ids.map((s) => (
                             <span
                               key={s}
-                              className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
+                              className="rounded-full bg-cyan-50 px-2 py-0.5 text-xs font-medium text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300"
                             >
                               {s}
                             </span>
@@ -666,7 +666,7 @@ export default function KnowledgeBasePage() {
                         <button
                           onClick={() => handleProcess(doc._id)}
                           disabled={processingIds.has(doc._id)}
-                          className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 disabled:opacity-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20"
+                          className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-cyan-600 hover:bg-cyan-50 disabled:opacity-50 dark:text-cyan-400 dark:hover:bg-cyan-900/20"
                           title="Process document"
                         >
                           {processingIds.has(doc._id) ? (
@@ -712,7 +712,7 @@ export default function KnowledgeBasePage() {
           <span className="rounded bg-blue-100 px-2 py-0.5 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
             ✓ 自动重试机制
           </span>
-          <span className="rounded bg-purple-100 px-2 py-0.5 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+          <span className="rounded bg-sky-100 px-2 py-0.5 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">
             ✓ 并发控制
           </span>
         </div>
@@ -720,7 +720,7 @@ export default function KnowledgeBasePage() {
           需要在{" "}
           <a
             href="/admin/settings/llm"
-            className="text-indigo-500 hover:underline"
+            className="text-cyan-500 hover:underline"
           >
             LLM 设置
           </a>{" "}

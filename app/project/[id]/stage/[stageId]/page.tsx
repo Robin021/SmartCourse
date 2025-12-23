@@ -817,7 +817,7 @@ export default function StagePage() {
                 <button
                   onClick={handleAiFill}
                   disabled={isFilling || isLoadingStage}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50/70 px-3 py-2 text-xs font-semibold text-indigo-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-indigo-900/40 dark:bg-indigo-900/30 dark:text-indigo-200 dark:hover:border-indigo-700"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-200 bg-cyan-50/70 px-3 py-2 text-xs font-semibold text-cyan-700 shadow-sm transition hover:border-cyan-300 hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-cyan-900/40 dark:bg-cyan-900/30 dark:text-cyan-200 dark:hover:border-cyan-700"
                   type="button"
                 >
                   <Sparkles className="h-4 w-4" />
@@ -1001,17 +1001,17 @@ export default function StagePage() {
                   </span>
                 )}
                 {coreConcept && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 font-semibold text-blue-700 ring-1 ring-blue-200/70 dark:bg-blue-900/30 dark:text-blue-200 dark:ring-blue-800/70">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-cyan-100 px-3 py-1 font-semibold text-cyan-700 ring-1 ring-cyan-200/70 dark:bg-cyan-900/30 dark:text-cyan-200 dark:ring-cyan-800/70">
                     核心概念 {coreConcept}
                   </span>
                 )}
                 {stageId === "Q5" && nameSuggestion && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-3 py-1 font-semibold text-purple-700 ring-1 ring-purple-200/70 dark:bg-purple-900/30 dark:text-purple-200 dark:ring-purple-800/70">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 font-semibold text-emerald-700 ring-1 ring-emerald-200/70 dark:bg-emerald-900/30 dark:text-emerald-200 dark:ring-emerald-800/70">
                     推荐名称 {nameSuggestion}
                   </span>
                 )}
                 {stageId === "Q5" && tagline && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-pink-100 px-3 py-1 font-semibold text-pink-700 ring-1 ring-pink-200/70 dark:bg-pink-900/30 dark:text-pink-200 dark:ring-pink-800/70">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-3 py-1 font-semibold text-rose-700 ring-1 ring-rose-200/70 dark:bg-rose-900/30 dark:text-rose-200 dark:ring-rose-800/70">
                     口号 {tagline}
                   </span>
                 )}

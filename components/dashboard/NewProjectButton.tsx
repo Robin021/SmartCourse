@@ -9,13 +9,13 @@ export default function NewProjectButton() {
     return (
         <button
             onClick={() => router.push("/project/new")}
-            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-zinc-900 px-6 py-3 font-medium text-white shadow-lg transition-all hover:bg-zinc-800 hover:shadow-xl hover:scale-105 active:scale-95 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-cyan-600 px-6 py-3 font-medium text-white shadow-lg shadow-cyan-500/30 transition-all hover:scale-105 hover:bg-cyan-500 hover:shadow-xl active:scale-95 dark:bg-cyan-500 dark:text-white dark:hover:bg-cyan-400"
         >
             <span className="relative z-10 flex items-center gap-2">
                 <Plus className="h-5 w-5 transition-transform group-hover:rotate-90" />
                 New Project
             </span>
-            <div className="absolute inset-0 -z-10 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 transition-opacity duration-500 group-hover:opacity-10" />
+            <div className="absolute inset-0 -z-10 bg-gradient-to-r from-emerald-400 via-cyan-400 to-sky-400 opacity-0 transition-opacity duration-500 group-hover:opacity-15" />
         </button>
     );
 }

@@ -62,6 +62,9 @@ async function fetchProjects(): Promise<ProjectSummary[]> {
       };
     });
   } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      return [];
+    }
     console.error("Error fetching projects:", error);
     return [];
   } finally {
@@ -92,7 +95,10 @@ async function fetchUser() {
     }
     const data = await res.json().catch(() => ({}));
     return { full_name: data.user?.full_name || "Teacher" };
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      return { full_name: "Teacher" };
+    }
     return { full_name: "Teacher" };
   } finally {
     clearTimeout(timeout);
@@ -103,17 +109,21 @@ export default async function Home() {
   const [projects, user] = await Promise.all([fetchProjects(), fetchUser()]);
 
   return (
-    <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-cyan-50/40 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-24 right-0 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-500/10" />
+        <div className="absolute -bottom-24 left-10 h-80 w-80 rounded-full bg-emerald-300/20 blur-3xl dark:bg-emerald-500/10" />
+      </div>
+      <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <DashboardHeader user={user} />
 
         {projects.length === 0 ? (
-          <div className="flex h-64 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-white p-12 text-center dark:border-zinc-800 dark:bg-zinc-900/50">
-            <h3 className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-              No projects
+          <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white/80 p-12 text-center shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/50">
+            <h3 className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+              No plans yet
             </h3>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Get started by creating a new school plan.
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Create your first school plan to get started.
             </p>
           </div>
         ) : (
