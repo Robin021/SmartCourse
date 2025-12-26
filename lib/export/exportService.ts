@@ -10,16 +10,28 @@ import { renderMermaidToBuffer } from "./mermaidUtils";
 
 const EXPORT_GROUPS = [
     {
-        title: "第一部分：课程顶层设计与理念文件 (Q1-Q4)",
-        stages: ["Q1", "Q2", "Q3", "Q4"]
+        title: "一、学校课程建设背景",
+        stages: ["Q1"]
     },
     {
-        title: "第二部分：育人目标与课程结构文件 (Q5-Q8)",
-        stages: ["Q5", "Q6", "Q7", "Q8"]
+        title: "二、学校课程哲学与理念",
+        stages: ["Q2", "Q3"]
     },
     {
-        title: "第三部分：课程实施与评价文件 (Q9-Q10)",
-        stages: ["Q9", "Q10"]
+        title: "三、学校课程育人目标",
+        stages: ["Q4", "Q7"]
+    },
+    {
+        title: "四、学校课程结构体系",
+        stages: ["Q5", "Q6", "Q8"]
+    },
+    {
+        title: "五、学校课程实施",
+        stages: ["Q9"]
+    },
+    {
+        title: "六、学校课程评价",
+        stages: ["Q10"]
     }
 ];
 
@@ -354,6 +366,28 @@ async function docxParagraphsFromMarkdown(content: string): Promise<Array<Paragr
             continue;
         }
 
+        // Support for standard Markdown Images: ![Alt](url)
+        const imageMatch = trimmed.match(/^!\[(.*?)\]\((.*?)\)/);
+        if (imageMatch) {
+            const altText = imageMatch[1];
+            const imageUrl = imageMatch[2];
+
+            // TODO: Real implementation needs to fetch the image URL and convert to buffer
+            // For now, we add a placeholder text to indicate where the image should be
+            // In a real implementation:
+            // 1. Fetch image (axios or fs if local)
+            // 2. Convert to buffer
+            // 3. new ImageRun({ data: buffer, ... })
+
+            blocks.push(new Paragraph({
+                children: [
+                    new TextRun({ text: `[IMAGE: ${altText}] (${imageUrl}) - Image embedding not fully implemented yet, waiting for backend support.`, color: "0000FF", italics: true })
+                ]
+            }));
+            continue;
+        }
+
+
         if (trimmed.includes("|") && !/^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(trimmed)) {
             const cells = trimmed
                 .replace(/^\|/, "")
@@ -390,7 +424,9 @@ async function renderDocxBundle(projectName: string, sections: StageExportSectio
         children.push(new Paragraph({
             text: group.title,
             heading: HeadingLevel.HEADING_1,
-            spacing: { before: 400, after: 200 }
+            pageBreakBefore: true, // Force start on new page
+            spacing: { before: 400, after: 400 }, // Increase spacing for visual emphasis
+            alignment: "center", // Center the part title
         }));
 
         for (const stageId of group.stages) {
