@@ -19,13 +19,13 @@ services:
 
     environment:
       NODE_ENV: production
-      COOKIE_SECURE: "true"
+      COOKIE_SECURE: "false"
       # 连接其他项目已运行的数据库（使用 docker ps 确认的真实名称）
       MONGODB_URI: mongodb://admin:tradingagents123@tradingagents-mongodb:27017/smartcourse?authSource=admin
       POSTGRES_URL: postgresql://postgres:postgres123@smartcourse-postgres:5432/smartcourse
       JWT_SECRET: ${JWT_SECRET:-change-me-to-32-byte-random-string}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-me-to-32-byte-random-string}
-      NEXTAUTH_URL: https://www.cc1p.com
+      NEXTAUTH_URL: http://www.cc1p.com:3000
 
     ports:
       - "3000:3000"
