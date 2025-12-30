@@ -2,13 +2,13 @@
 services:
   # 覆盖 app 服务：连接外部数据库
   app:
-    # 使用 GitHub Action 构建好的镜像
-    image: ghcr.io/robin021/smartcourse:main
+    # 为了使用本地构建的修复版镜像，注释掉 image
+    # image: ghcr.io/robin021/smartcourse:main
     container_name: smartcourse-app-prod
     restart: unless-stopped
 
-    # 禁用本地构建，强制拉取镜像
-    build:
+    # 继承 docker-compose.yml 中的 build 配置 (使用 Dockerfile)
+    # build: 
     volumes: []
     command: []
 

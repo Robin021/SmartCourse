@@ -50,9 +50,13 @@ COPY --from=builder /app/.next/static ./.next/static
 
 # 在 runner 阶段直接安装 mermaid-cli（生产依赖）
 # 这比从 deps 复制更可靠，npm 会自动处理所有依赖关系
-# 先初始化一个空的 package.json，然后安装需要的包
-RUN echo '{"private":true}' > package.json && \
-    npm install --omit=dev @mermaid-js/mermaid-cli puppeteer
+# 在 runner 阶段全局安装 mermaid-cli 和 puppeteer
+# 使用全局安装避免破坏 /app/node_modules (Next.js standalone 依赖)
+ENV NPM_CONFIG_PREFIX=/usr/local
+RUN npm install -g @mermaid-js/mermaid-cli puppeteer
+
+# 确保全局安装的包可以被 require (虽然我们主要是用 CLI)
+ENV NODE_PATH=/usr/local/lib/node_modules
 
 # 设置权限
 RUN chown -R nextjs:nodejs /app

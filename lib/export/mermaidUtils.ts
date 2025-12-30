@@ -43,9 +43,21 @@ export async function renderMermaidToBuffer(code: string): Promise<Buffer | null
         await writeFileAsync(puppeteerConfigPath, JSON.stringify(puppeteerConfig), "utf8");
 
         // 3. Execute mmdc
-        // Use the local bin path for mermaid-cli
-        const mmdcPath = path.resolve(process.cwd(), "node_modules", ".bin", "mmdc");
-        const cmd = `"${mmdcPath}" -i "${inputPath}" -o "${outputPath}" -b transparent --scale 2 -p "${puppeteerConfigPath}"`;
+        // Try local node_modules first, then fallback to global command
+        let mmdcPath = path.resolve(process.cwd(), "node_modules", ".bin", "mmdc");
+        let cmdExecutor = "";
+        
+        if (fs.existsSync(mmdcPath)) {
+            // Local install
+            cmdExecutor = `"${mmdcPath}"`;
+        } else {
+            // Fallback to global path or PATH resolution
+            // In Docker with npm -g, it should be in PATH
+            mmdcPath = "mmdc"; 
+            cmdExecutor = "mmdc";
+        }
+
+        const cmd = `${cmdExecutor} -i "${inputPath}" -o "${outputPath}" -b transparent --scale 2 -p "${puppeteerConfigPath}"`;
 
         console.log(`Executing Mermaid: ${cmd}`);
 
