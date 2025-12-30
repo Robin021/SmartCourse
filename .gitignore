@@ -56,3 +56,10 @@ doc/
 
 # Other
 .kiro/
+
+# Docker data volumes (runtime data, should not be in version control)
+fastgpt-minio/
+fastgpt-pg/
+fastgpt-mongo/
+mongo/
+*-data/
