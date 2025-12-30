@@ -1,19 +1,22 @@
 # compose.override.yml (精简安全版)
 services:
-  # 覆盖 app 服务：移除对本地数据库的依赖，连接外部数据库
+  # 覆盖 app 服务：连接外部数据库
   app:
-    image: ghcr.io/robin021/smartcourse:main
+    # 为了使用本地构建的修复版镜像，注释掉 image
+    # image: ghcr.io/robin021/smartcourse:main
     container_name: smartcourse-app-prod
     restart: unless-stopped
-    
-    # 清除开发配置
-    build: 
+
+    # 继承 docker-compose.yml 中的 build 配置 (使用 Dockerfile)
+    # build: 
     volumes: []
     command: []
-    
-    # 关键：移除 depends_on（因为使用外部数据库）
-    depends_on: {}  # 覆盖为空依赖
-    
+
+    # 依赖关系
+    depends_on:
+      fastgpt-minio:
+        condition: service_healthy
+
     environment:
       NODE_ENV: production
       COOKIE_SECURE: "true"
@@ -23,25 +26,20 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me-to-32-byte-random-string}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-me-to-32-byte-random-string}
       NEXTAUTH_URL: https://www.cc1p.com
-    
+
     ports:
       - "3000:3000"
-    
+
     # 仅加入外部网络（访问其他项目的数据库）
     networks:
       - tradingagents-network
-    
-    # 依赖本项目的 MinIO
-    depends_on:
-      fastgpt-minio:
-        condition: service_healthy
 
   # 添加 MinIO 服务（当前项目必需）
   fastgpt-minio:
     image: minio/minio:latest
     container_name: smartcourse-minio
     restart: always
-    ports: []  # 安全：不暴露端口
+    ports: [] # 安全：不暴露端口
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
@@ -49,13 +47,13 @@ services:
       - ./minio-data:/data
     command: server /data --console-address ":9001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 30s
       timeout: 20s
       retries: 3
     # 连接到主 compose 创建的网络
     networks:
-      - default  # 自动使用主 compose 的 default 网络 (smartcourse-network)
+      - default # 自动使用主 compose 的 default 网络 (smartcourse-network)
 
 # 仅声明外部网络（其他项目创建）
 networks:

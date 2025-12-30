@@ -44,48 +44,40 @@ services:
   #     timeout: 5s
   #     retries: 5
 
-  # Next.js 应用（开发模式）
+  # Next.js 应用（生产模式）
   app:
     build:
       context: .
-      dockerfile: Dockerfile.dev
-    container_name: smartcourse-app
+      dockerfile: Dockerfile
+    container_name: smartcourse-app-prod
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      # MongoDB 连接
+      # MongoDB 连接 (将被 override 覆盖)
       MONGODB_URI: mongodb://admin:admin123@mongodb:27017/smartcourse?authSource=admin
-      # PostgreSQL 连接
+      # PostgreSQL 连接 (将被 override 覆盖)
       POSTGRES_URL: postgresql://postgres:postgres123@postgres:5432/smartcourse
       # Next.js 环境
-      NODE_ENV: development
-      # 允许在 HTTP 环境下测试登录（生产环境请设为 true 并使用 HTTPS）
-      COOKIE_SECURE: "false"
-      # JWT 密钥（请在生产环境中修改）
-      JWT_SECRET: your-secret-key-change-in-production
-      NEXTAUTH_SECRET: your-nextauth-secret-change-in-production
+      NODE_ENV: production
+      # 生产环境设置
+      COOKIE_SECURE: "true"
+      # JWT 密钥（请在 .env 或 override 中设置）
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-me-in-production}
       NEXTAUTH_URL: http://localhost:3000
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.next
+    # 生产环境不需要挂载源码，依赖都在镜像里
     networks:
       - smartcourse-network
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-    command: npm run dev
+    # 移除 command，使用 Dockerfile 中的 CMD ["node", "server.js"]
 
-# volumes:
-#   mongodb_data:
-#     driver: local
-#   mongodb_config:
-#     driver: local
-#   postgres_data:
-#     driver: local
+    # volumes:
+    #   mongodb_data:
+    #     driver: local
+    #   mongodb_config:
+    #     driver: local
+    #   postgres_data:
+    #     driver: local
 
 networks:
   smartcourse-network:
