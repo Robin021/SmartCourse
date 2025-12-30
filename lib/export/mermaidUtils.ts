@@ -46,18 +46,18 @@ export async function renderMermaidToBuffer(code: string): Promise<Buffer | null
         // Try local node_modules first, then fallback to global command
         let mmdcPath = path.resolve(process.cwd(), "node_modules", ".bin", "mmdc");
         let cmdExecutor = "";
-        
+
         if (fs.existsSync(mmdcPath)) {
             // Local install
             cmdExecutor = `"${mmdcPath}"`;
         } else {
             // Fallback to global path or PATH resolution
             // In Docker with npm -g, it should be in PATH
-            mmdcPath = "mmdc"; 
+            mmdcPath = "mmdc";
             cmdExecutor = "mmdc";
         }
 
-        const cmd = `${cmdExecutor} -i "${inputPath}" -o "${outputPath}" -b transparent --scale 2 -p "${puppeteerConfigPath}"`;
+        const cmd = `${cmdExecutor} -i "${inputPath}" -o "${outputPath}" -b transparent --scale 3 -p "${puppeteerConfigPath}"`;
 
         console.log(`Executing Mermaid: ${cmd}`);
 
@@ -86,5 +86,26 @@ export async function renderMermaidToBuffer(code: string): Promise<Buffer | null
         } catch (e) {
             // ignore cleanup errors
         }
+    }
+}
+
+/**
+ * Extract width and height from a PNG buffer.
+ * PNG IHDR chunk is always at the beginning.
+ * Width is 4 bytes at offset 16, Height is 4 bytes at offset 20.
+ */
+export function getPngDimensions(buffer: Buffer): { width: number; height: number } {
+    try {
+        // Verify PNG signature: 89 50 4E 47 0D 0A 1A 0A
+        if (buffer[0] !== 0x89 || buffer[1] !== 0x50 || buffer[2] !== 0x4E || buffer[3] !== 0x47) {
+            return { width: 500, height: 300 }; // Fallback
+        }
+
+        const width = buffer.readUInt32BE(16);
+        const height = buffer.readUInt32BE(20);
+
+        return { width, height };
+    } catch (e) {
+        return { width: 500, height: 300 };
     }
 }

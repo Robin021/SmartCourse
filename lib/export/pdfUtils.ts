@@ -1,7 +1,7 @@
 import fs from "fs";
 import PDFDocument from "pdfkit";
 import { stripInlineMarkdown } from "./markdownUtils";
-import { renderMermaidToBuffer } from "./mermaidUtils";
+import { renderMermaidToBuffer, getPngDimensions } from "./mermaidUtils";
 import { StageExportSection } from "@/types/project";
 
 type FontCandidate = { path: string; family?: string };
@@ -187,7 +187,24 @@ export async function writeTextBlocks(
             try {
                 const buffer = await renderMermaidToBuffer(mermaidCode);
                 if (buffer) {
-                    doc.image(buffer, { fit: [width, 500], align: 'center' });
+                    const { width: finalWidth, height: finalHeight } = getPngDimensions(buffer);
+                    // Standard PDF page width (A4) minus margins is roughly 480-500pt
+                    // If image is wider than content width, scale it down to fit width
+                    // If image is smaller, center it at natural size (adjusted for density if needed, 
+                    // but usually PDFKit handles pixel-to-point mapping 1:1, so high-res image at 1:1 point might be HUGE)
+                    // We generated at scale 3. So 1 CSS pixel = 3 actual pixels.
+                    // We want to display it at roughly CSS pixel size (1/3 of distinct pixels).
+
+                    let displayWidth = finalWidth / 3; // Approx natural size in points
+
+                    // Cap at page width
+                    if (displayWidth > width) {
+                        displayWidth = width;
+                    }
+
+                    // If it's too small, maybe keep it? or let it be.
+
+                    doc.image(buffer, { width: displayWidth, align: 'center' });
                     doc.moveDown(0.5);
                 } else {
                     doc.fillColor("red").text("[Mermaid Generation Failed]", { width, align: 'center', oblique: true });

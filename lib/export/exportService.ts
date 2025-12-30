@@ -6,7 +6,7 @@ import { StageExportSection } from "@/types/project";
 import { stripInlineMarkdown, parseMarkdownTable } from "./markdownUtils";
 import { renderPdfBundle } from "./pdfUtils";
 import { renderPptBundle } from "./pptUtils";
-import { renderMermaidToBuffer } from "./mermaidUtils";
+import { renderMermaidToBuffer, getPngDimensions } from "./mermaidUtils";
 
 const EXPORT_GROUPS = [
     {
@@ -267,13 +267,24 @@ async function docxParagraphsFromMarkdown(content: string): Promise<Array<Paragr
                     try {
                         const imgBuffer = await renderMermaidToBuffer(mermaidCode);
                         if (imgBuffer) {
+                            const { width: naturalWidth, height: naturalHeight } = getPngDimensions(imgBuffer);
+                            const MAX_WIDTH = 600;
+
+                            let targetWidth = naturalWidth;
+                            let targetHeight = naturalHeight;
+
+                            if (naturalWidth > MAX_WIDTH) {
+                                targetWidth = MAX_WIDTH;
+                                targetHeight = Math.round((naturalHeight / naturalWidth) * MAX_WIDTH);
+                            }
+
                             blocks.push(new Paragraph({
                                 children: [
                                     new ImageRun({
                                         data: imgBuffer,
                                         transformation: {
-                                            width: 500,
-                                            height: 300,
+                                            width: targetWidth,
+                                            height: targetHeight,
                                         },
                                         type: "png"
                                     })
