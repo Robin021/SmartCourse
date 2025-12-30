@@ -281,7 +281,7 @@ async function docxParagraphsFromMarkdown(content: string): Promise<Array<Paragr
                             }));
                         } else {
                             blocks.push(new Paragraph({
-                                children: [new TextRun({ text: "[Mermaid Diagram Rendering Failed]", color: "red" })]
+                                children: [new TextRun({ text: "[Mermaid Diagram Rendering Failed]", color: "990000" })]
                             }));
                             // Fallback: show code
                             codeBuffer.forEach(l => {
@@ -290,7 +290,7 @@ async function docxParagraphsFromMarkdown(content: string): Promise<Array<Paragr
                         }
                     } catch (e) {
                         blocks.push(new Paragraph({
-                            children: [new TextRun({ text: "[Mermaid Error]", color: "red" })]
+                            children: [new TextRun({ text: "[Mermaid Error]", color: "990000" })]
                         }));
                     }
                 } else {

@@ -17,30 +17,43 @@ export async function renderMermaidToBuffer(code: string): Promise<Buffer | null
     const id = Math.random().toString(36).substring(2, 10);
     const inputPath = path.join(tmpDir, `mermaid-${id}.mmd`);
     const outputPath = path.join(tmpDir, `mermaid-${id}.png`);
-    const configFile = path.resolve(process.cwd(), "mermaid.json"); // Optional config
-    const puppeteerConfig = path.resolve(process.cwd(), "puppeteer-config.json");
+    const puppeteerConfigPath = path.join(tmpDir, `puppeteer-config-${id}.json`);
 
     try {
         // 1. Write mermaid code to temp file
-        // Ensure proper graph declaration if missing or just wrap code
-        // For now, assume code is valid mermaid
         await writeFileAsync(inputPath, code, "utf8");
 
-        // 2. Execute mmdc
-        // npx is safest in dev, but in prod we might need direct path.
-        // Assuming npm install @mermaid-js/mermaid-cli was run locally.
-        // We use 'npx -y' to ensure it runs even if not perfectly linked, or direct path.
-        // Better: use the local bin path if possible.
+        // 2. Generate puppeteer config dynamically
+        // This allows using system Chromium in Docker via PUPPETEER_EXECUTABLE_PATH env var
+        const puppeteerConfig: Record<string, unknown> = {
+            headless: true,
+            args: [
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu"
+            ]
+        };
+
+        // Use system Chromium if PUPPETEER_EXECUTABLE_PATH is set (e.g., in Docker)
+        if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+            puppeteerConfig.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+        }
+
+        await writeFileAsync(puppeteerConfigPath, JSON.stringify(puppeteerConfig), "utf8");
+
+        // 3. Execute mmdc
+        // Use the local bin path for mermaid-cli
         const mmdcPath = path.resolve(process.cwd(), "node_modules", ".bin", "mmdc");
-        const cmd = `"${mmdcPath}" -i "${inputPath}" -o "${outputPath}" -b transparent --scale 2 -p "${puppeteerConfig}"`;
+        const cmd = `"${mmdcPath}" -i "${inputPath}" -o "${outputPath}" -b transparent --scale 2 -p "${puppeteerConfigPath}"`;
 
         console.log(`Executing Mermaid: ${cmd}`);
 
         // Timeout to prevent hanging
-        const { stdout, stderr } = await execAsync(cmd, { timeout: 30000 });
+        const { stdout, stderr } = await execAsync(cmd, { timeout: 60000 });
         if (stderr) console.warn("Mermaid CLI Stderr:", stderr);
 
-        // 3. Read the output image
+        // 4. Read the output image
         if (fs.existsSync(outputPath)) {
             const buffer = await readFileAsync(outputPath);
             return buffer;
@@ -53,10 +66,11 @@ export async function renderMermaidToBuffer(code: string): Promise<Buffer | null
         console.error("Mermaid Render Error:", error);
         return null;
     } finally {
-        // 4. Cleanup
+        // 5. Cleanup
         try {
             if (fs.existsSync(inputPath)) await unlinkAsync(inputPath);
             if (fs.existsSync(outputPath)) await unlinkAsync(outputPath);
+            if (fs.existsSync(puppeteerConfigPath)) await unlinkAsync(puppeteerConfigPath);
         } catch (e) {
             // ignore cleanup errors
         }
