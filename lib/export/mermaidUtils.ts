@@ -20,8 +20,15 @@ export async function renderMermaidToBuffer(code: string): Promise<Buffer | null
     const puppeteerConfigPath = path.join(tmpDir, `puppeteer-config-${id}.json`);
 
     try {
+        // Sanitization: Replace Chinese/Smart double quotes with standard ASCII double quotes
+        // Also ensure parentheses inside labels are properly quoted if simple fix allows,
+        // but mainly fixing the quote char is key.
+        const sanitizedCode = code
+            .replace(/[\u201C\u201D]/g, '"') // Replace “ and ” with "
+            .replace(/[\u2018\u2019]/g, "'"); // Replace ‘ and ’ with '
+
         // 1. Write mermaid code to temp file
-        await writeFileAsync(inputPath, code, "utf8");
+        await writeFileAsync(inputPath, sanitizedCode, "utf8");
 
         // 2. Generate puppeteer config dynamically
         // This allows using system Chromium in Docker via PUPPETEER_EXECUTABLE_PATH env var
