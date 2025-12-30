@@ -20,11 +20,11 @@ export async function renderMermaidToBuffer(code: string): Promise<Buffer | null
     const puppeteerConfigPath = path.join(tmpDir, `puppeteer-config-${id}.json`);
 
     try {
-        // Sanitization: Replace Chinese/Smart double quotes with standard ASCII double quotes
-        // Also ensure parentheses inside labels are properly quoted if simple fix allows,
-        // but mainly fixing the quote char is key.
+        // Sanitization: Replace Chinese/Smart double quotes with standard ASCII SINGLE quotes
+        // This avoids nesting issues if the outer wrapper is already double quotes (A["..."]).
+        // E.g. A["“Label”"] -> A["'Label'"] which is valid, whereas A[""Label""] is not.
         const sanitizedCode = code
-            .replace(/[\u201C\u201D]/g, '"') // Replace “ and ” with "
+            .replace(/[\u201C\u201D]/g, "'") // Replace “ and ” with '
             .replace(/[\u2018\u2019]/g, "'"); // Replace ‘ and ’ with '
 
         // 1. Write mermaid code to temp file
