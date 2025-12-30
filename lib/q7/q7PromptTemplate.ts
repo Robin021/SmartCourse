@@ -28,16 +28,18 @@ export const Q7_PROMPT_TEMPLATE = `你是一位课程目标设计专家，需将
 
 [配图占位符]：
 请根据课程目标内容，生成一个 Mermaid 思维导图 (\`mindmap\`) 或 结构图 (\`graph TD\`)，直观展示课程目标的层级结构。
+**重要提示：所有节点标签必须使用双引号包裹，以避免特殊字符导致的语法错误。**
 \`\`\`mermaid
 mindmap
-  root((课程目标))
-    核心素养
-      目标A
-      目标B
-    学科能力
-      目标C
-      目标D
+  root(("课程目标"))
+    "核心素养"
+      "目标A"
+      "目标B"
+    "学科能力"
+      "目标C"
+      "目标D"
 \`\`\`
+*(以上仅为示例，请根据实际内容生成)*
 *(以上仅为示例，请根据实际内容生成)*
 图1 课程目标图
 
@@ -51,10 +53,12 @@ mindmap
 
 [配图占位符]：
 请根据分学段的成长进阶关系，生成一个 Mermaid 流程图 (\`graph LR\`)，展示学生成长的阶段性变化。
+**重要提示：所有节点标签必须使用双引号包裹，以避免特殊字符（如冒号、括号）导致的语法错误。**
+例如：\`A["萌芽阶段"] --> B["生长阶段"]\`
 \`\`\`mermaid
 graph LR
-    A[萌芽阶段] -->|成长| B[生长阶段]
-    B -->|成熟| C[生活阶段]
+    A["萌芽阶段"] -->|成长| B["生长阶段"]
+    B -->|成熟| C["生活阶段"]
 \`\`\`
 *(以上仅为示例，请根据实际内容生成)*
 图2 分学段成长图
@@ -79,28 +83,28 @@ graph LR
 `;
 
 export const Q7_PROMPT_METADATA = {
-    key: Q7_PROMPT_KEY,
-    name: "Q7 课程目标细化",
-    description: "生成分学段课程目标与差距分析的提示词模板",
-    template: Q7_PROMPT_TEMPLATE,
-    category: "stage",
-    variables: [
-        "current_strengths",
-        "current_gaps",
-        "feature_carriers",
-        "dimension_focus",
-        "low_stage_targets",
-        "mid_stage_targets",
-        "high_stage_targets",
-        "style_hint",
-        "q2_philosophy",
-        "q3_concept",
-        "q4_goal",
-        "q5_name",
-        "q6_concept",
-        "rag_results",
-    ],
-    current_version: 1,
+  key: Q7_PROMPT_KEY,
+  name: "Q7 课程目标细化",
+  description: "生成分学段课程目标与差距分析的提示词模板",
+  template: Q7_PROMPT_TEMPLATE,
+  category: "stage",
+  variables: [
+    "current_strengths",
+    "current_gaps",
+    "feature_carriers",
+    "dimension_focus",
+    "low_stage_targets",
+    "mid_stage_targets",
+    "high_stage_targets",
+    "style_hint",
+    "q2_philosophy",
+    "q3_concept",
+    "q4_goal",
+    "q5_name",
+    "q6_concept",
+    "rag_results",
+  ],
+  current_version: 1,
 };
 
 export default Q7_PROMPT_TEMPLATE;

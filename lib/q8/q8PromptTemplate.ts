@@ -31,15 +31,16 @@ export const Q8_PROMPT_TEMPLATE = `你是一位课程结构设计专家，需基
 
 [配图占位符]：
 请根据课程结构，生成一个 Mermaid 格式的架构图（如思维导图 \`mindmap\` 或 架构图 \`graph TD\`），直观展示课程的板块与模块关系。
+**重要提示：所有节点标签必须使用双引号包裹，以避免特殊字符（如冒号、括号）导致的语法错误。**
 \`\`\`mermaid
 mindmap
-  root((课程名称))
-    板块1
-      模块A
-      模块B
-    板块2
-      模块C
-      模块D
+  root(("课程名称"))
+    "板块1"
+      "模块A"
+      "模块B"
+    "板块2"
+      "模块C"
+      "模块D"
 \`\`\`
 *(以上仅为示例，请根据实际内容生成)*
 图1 [学校名称]“[Q5课程名称]”结构示意图
@@ -68,28 +69,28 @@ mindmap
 `;
 
 export const Q8_PROMPT_METADATA = {
-    key: Q8_PROMPT_KEY,
-    name: "Q8 课程结构设计",
-    description: "生成《校本课程结构方案初稿》与结构合理性建议的提示词模板",
-    template: Q8_PROMPT_TEMPLATE,
-    category: "stage",
-    variables: [
-        "core_keywords",
-        "core_metaphor",
-        "framework",
-        "board_names",
-        "modules_plan",
-        "mapping_notes",
-        "doc_style",
-        "additional_notes",
-        "q2_philosophy",
-        "q3_concept",
-        "q4_goal",
-        "q5_name",
-        "q6_concept",
-        "rag_results",
-    ],
-    current_version: 1,
+  key: Q8_PROMPT_KEY,
+  name: "Q8 课程结构设计",
+  description: "生成《校本课程结构方案初稿》与结构合理性建议的提示词模板",
+  template: Q8_PROMPT_TEMPLATE,
+  category: "stage",
+  variables: [
+    "core_keywords",
+    "core_metaphor",
+    "framework",
+    "board_names",
+    "modules_plan",
+    "mapping_notes",
+    "doc_style",
+    "additional_notes",
+    "q2_philosophy",
+    "q3_concept",
+    "q4_goal",
+    "q5_name",
+    "q6_concept",
+    "rag_results",
+  ],
+  current_version: 1,
 };
 
 export default Q8_PROMPT_TEMPLATE;
