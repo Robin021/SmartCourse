@@ -22,23 +22,23 @@ import { Q10_PROMPT_METADATA } from "@/lib/q10";
 const STAGES_DATA = [
     {
         stage_id: "Q1",
-        name: "School Background",
-        description: "Basic info about the school.",
+        name: "学校背景",
+        description: "填写学校基本信息，进行SWOT分析，生成学校现况与背景分析。",
         ui_schema: {
             sections: [
                 {
-                    title: "Basic Info",
+                    title: "基本信息",
                     fields: [
                         {
                             key: "school_name",
                             type: "text",
-                            label: "School Name",
+                            label: "学校名称",
                             required: true,
                         },
                         {
                             key: "history",
                             type: "textarea",
-                            label: "History",
+                            label: "办学历史",
                             required: true,
                         },
                     ],
