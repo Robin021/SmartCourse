@@ -4,6 +4,10 @@ FROM node:20-alpine AS base
 FROM base AS deps
 WORKDIR /app
 COPY package*.json ./
+# 跳过 Puppeteer Chrome 下载以节省空间和避免 ENOSPC 错误
+# 生产环境我们将使用系统安装的 Chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 RUN npm ci
 
 # 构建阶段
