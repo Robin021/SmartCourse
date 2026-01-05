@@ -14,7 +14,7 @@ const COOKIE_SECURE =
 export async function POST(req: Request) {
     try {
         await connectDB();
-        const { email, password } = await req.json();
+        const { email, password, role } = await req.json();
 
         // 1. Find User
         const user = await User.findOne({ email });
@@ -23,6 +23,15 @@ export async function POST(req: Request) {
             return NextResponse.json(
                 { error: "Invalid credentials" },
                 { status: 401 }
+            );
+        }
+
+        // 2. CHECK ROLE MATCH
+        if (role && user.role !== role) {
+            console.log(`Login failed: Role mismatch. Expected ${user.role}, Got ${role}`);
+            return NextResponse.json(
+                { error: "Role mismatch. Please select the correct role tab." },
+                { status: 403 }
             );
         }
 
