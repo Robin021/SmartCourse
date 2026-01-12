@@ -1,5 +1,13 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
+export const USER_ROLES = [
+    "SYSTEM_ADMIN",
+    "BUREAU_ADMIN",
+    "SCHOOL_ADMIN",
+    "TEACHER",
+    "STUDENT",
+];
+
 export interface IUser extends Document {
     email: string;
     password_hash: string;
@@ -24,13 +32,7 @@ const UserSchema: Schema = new Schema(
         avatar_url: { type: String },
         role: {
             type: String,
-            enum: [
-                "SYSTEM_ADMIN",
-                "BUREAU_ADMIN",
-                "SCHOOL_ADMIN",
-                "TEACHER",
-                "STUDENT",
-            ],
+            enum: USER_ROLES,
             required: true,
         },
         tenant_id: { type: String },

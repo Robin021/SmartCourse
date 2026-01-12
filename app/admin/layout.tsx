@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Settings, Database, FileText, Globe } from "lucide-react";
+import { LayoutDashboard, Settings, Database, FileText, Globe, Users, Shield } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LogoutButton from "@/components/dashboard/LogoutButton";
@@ -14,9 +14,18 @@ export default function AdminLayout({
 
     const navItems = [
         {
-            name: "Dashboard",
             href: "/admin",
             icon: LayoutDashboard,
+        },
+        {
+            name: "Users",
+            href: "/admin/users",
+            icon: Users,
+        },
+        {
+            name: "Roles",
+            href: "/admin/roles",
+            icon: Shield,
         },
         {
             name: "LLM Settings",
