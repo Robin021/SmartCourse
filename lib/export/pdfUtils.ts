@@ -3,6 +3,7 @@ import PDFDocument from "pdfkit";
 import { stripInlineMarkdown } from "./markdownUtils";
 import { renderMermaidToBuffer, getPngDimensions } from "./mermaidUtils";
 import { StageExportSection } from "@/types/project";
+import { fetchImageBuffer, getImageDimensions } from "./imageUtils";
 
 type FontCandidate = { path: string; family?: string };
 
@@ -97,6 +98,7 @@ const HEADING_REGEX = /^(#{1,6})\s+(.*)$/;
 const HR_REGEX = /^(-{3,}|_{3,}|\*{3,})\s*$/;
 const BLOCKQUOTE_REGEX = /^>\s+(.*)$/;
 const TABLE_SEPARATOR_REGEX = /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/;
+const IMAGE_REGEX = /^!\[(.*?)\]\((.*?)\)/;
 
 export async function writeTextBlocks(
     doc: PDFKit.PDFDocument,
@@ -337,6 +339,35 @@ export async function writeTextBlocks(
             continue;
         }
 
+        const imageMatch = trimmed.match(IMAGE_REGEX);
+        if (imageMatch) {
+            await flushLists();
+            const altText = imageMatch[1];
+            const imageUrl = imageMatch[2];
+            try {
+                const buffer = await fetchImageBuffer(imageUrl);
+                if (buffer) {
+                    const { width: finalWidth, height: finalHeight } = getImageDimensions(buffer);
+                    const maxWidth = width;
+                    let displayWidth = finalWidth;
+                    if (displayWidth > maxWidth) {
+                        displayWidth = maxWidth;
+                    }
+                    doc.image(buffer, { width: displayWidth, align: 'center' });
+                    if (altText) {
+                        doc.fontSize(9).fillColor(mutedColor).text(altText, { align: 'center', width: displayWidth });
+                    }
+                    doc.moveDown(1);
+                } else {
+                    doc.fillColor("red").fontSize(9).text(`[图片拉取失败: ${altText || imageUrl}]`, { width });
+                }
+            } catch (e) {
+                console.error("PDF Image Error:", e);
+                doc.fillColor("red").fontSize(9).text(`[图片嵌入错误: ${altText || imageUrl}]`, { width });
+            }
+            continue;
+        }
+
         await flushLists();
         doc.text(stripInlineMarkdown(trimmed), {
             width,
@@ -402,9 +433,16 @@ export async function renderPdfBundle(projectName: string, sections: StageExport
     const { doc, bodyFont, headingFont } = createPdfDoc();
 
     // Title Page
-    doc.fontSize(24).font(headingFont).text(projectName, { align: "center" });
-    doc.moveDown();
-    doc.fontSize(16).fillColor("#6B7280").text("课程设计导出报告", { align: "center" });
+    doc.moveDown(10);
+    doc.fontSize(28).font(headingFont).fillColor("#1a365d").text(projectName, { align: "center" });
+    doc.moveDown(0.5);
+    doc.fontSize(18).fillColor("#4a5568").text("课程设计方案报告", { align: "center" });
+    doc.moveDown(8);
+    doc.fontSize(12).fillColor("#718096").text(`生成日期：${new Date().toLocaleDateString('zh-CN')}`, { align: "center" });
+
+    // Page Numbers
+    addPageNumbers(doc, { font: bodyFont });
+
     doc.addPage();
 
     const getSection = (id: string) => sections.find(s => s.stageId === id || s.stageId.startsWith(id + " "));

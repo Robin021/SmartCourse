@@ -20,7 +20,7 @@ const DEFAULT_CONFIG: Required<ProcessingConfig> = {
     chunkSize: 500,
     chunkOverlap: 100,
     maxRetries: 3,
-    batchSize: 20,
+    batchSize: 10,
 };
 
 // 并发控制：同时处理的文档数
@@ -33,10 +33,10 @@ let mammoth: any = null;
 
 async function loadPdfParse() {
     if (!pdfParse) {
+        // pdf-parse v1.x has a quirk where require() tries to load a test file
+        // Use the internal lib path to skip the test initialization
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const mod = require("pdf-parse");
-        // Handle both ESM default export and CJS module.exports
-        pdfParse = mod.default || mod;
+        pdfParse = require("pdf-parse/lib/pdf-parse.js");
     }
     return pdfParse;
 }
@@ -125,9 +125,10 @@ async function extractText(filePath: string, mimeType: string): Promise<string> 
     const buffer = await readFile(filePath);
 
     if (mimeType === "application/pdf") {
-        const pdf = await loadPdfParse();
-        const data = await pdf(buffer);
-        return data.text;
+        // pdf-parse v1.x - simple function call
+        const pdfParse = await loadPdfParse();
+        const data = await pdfParse(buffer);
+        return data.text || "";
     }
 
     if (
@@ -156,7 +157,7 @@ function splitIntoChunks(
     overlap: number = 100
 ): string[] {
     const chunks: string[] = [];
-    
+
     // 1. 预处理：标准化空白字符，但保留段落结构
     const normalizedText = text
         .replace(/\r\n/g, "\n")
@@ -180,7 +181,7 @@ function splitIntoChunks(
 
     // 3. 合并短段落，分割长段落
     let currentChunk = "";
-    
+
     for (const paragraph of paragraphs) {
         // 如果段落本身就超过 chunkSize，需要进一步分割
         if (paragraph.length > chunkSize) {
@@ -190,18 +191,18 @@ function splitIntoChunks(
                 // 保留 overlap 部分
                 currentChunk = getOverlapText(currentChunk, overlap);
             }
-            
+
             // 分割长段落
             const subChunks = splitLongParagraph(paragraph, chunkSize, overlap);
             chunks.push(...subChunks.slice(0, -1));
-            
+
             // 最后一个子块作为下一轮的起点
             currentChunk = subChunks[subChunks.length - 1] || "";
         } else {
             // 尝试添加到当前 chunk
             const separator = currentChunk.length > 0 ? " " : "";
             const potentialChunk = currentChunk + separator + paragraph;
-            
+
             if (potentialChunk.length <= chunkSize) {
                 currentChunk = potentialChunk;
             } else {
@@ -233,16 +234,16 @@ function splitLongParagraph(
     overlap: number
 ): string[] {
     const chunks: string[] = [];
-    
+
     // 按句子分割（支持中英文句号、问号、感叹号）
     const sentences = paragraph.split(/(?<=[。！？.!?])\s*/).filter(s => s.trim().length > 0);
-    
+
     let currentChunk = "";
-    
+
     for (const sentence of sentences) {
         const separator = currentChunk.length > 0 ? " " : "";
         const potentialChunk = currentChunk + separator + sentence;
-        
+
         if (potentialChunk.length <= chunkSize) {
             currentChunk = potentialChunk;
         } else {
@@ -252,7 +253,7 @@ function splitLongParagraph(
                 chunks.push(...charChunks);
                 continue;
             }
-            
+
             if (currentChunk.length > 0) {
                 chunks.push(currentChunk.trim());
             }
@@ -260,11 +261,11 @@ function splitLongParagraph(
             currentChunk = currentChunk ? currentChunk + " " + sentence : sentence;
         }
     }
-    
+
     if (currentChunk.trim().length > 0) {
         chunks.push(currentChunk.trim());
     }
-    
+
     return chunks;
 }
 
@@ -278,14 +279,14 @@ function splitByCharacters(
 ): string[] {
     const chunks: string[] = [];
     let start = 0;
-    
+
     while (start < text.length) {
         const end = Math.min(start + chunkSize, text.length);
         chunks.push(text.slice(start, end).trim());
         start = end - overlap;
         if (start >= text.length - overlap) break;
     }
-    
+
     return chunks.filter(c => c.length > 0);
 }
 
@@ -323,7 +324,7 @@ export async function processDocument(
     if (processingDocuments.has(documentId)) {
         return { success: false, error: "Document is already being processed" };
     }
-    
+
     if (processingDocuments.size >= MAX_CONCURRENT_PROCESSING) {
         return { success: false, error: `Too many documents processing (max: ${MAX_CONCURRENT_PROCESSING}). Please wait.` };
     }
@@ -344,9 +345,9 @@ export async function processDocument(
     try {
         // 标记开始处理
         processingDocuments.add(documentId);
-        
+
         // Update status to processing
-        await DocumentModel.findByIdAndUpdate(documentId, { 
+        await DocumentModel.findByIdAndUpdate(documentId, {
             status: "processing" as any,
             processing_attempts: currentAttempts,
             error_message: null,  // 清除之前的错误
@@ -430,7 +431,7 @@ export async function processDocument(
     } catch (error: any) {
         console.error(`[Process] Error processing document (attempt ${currentAttempts}):`, error);
 
-        const errorMessage = error instanceof EmbeddingError 
+        const errorMessage = error instanceof EmbeddingError
             ? `Embedding error: ${error.message}`
             : error.message || "Unknown error";
 
@@ -444,7 +445,7 @@ export async function processDocument(
     } finally {
         // 清理并发标记
         processingDocuments.delete(documentId);
-        
+
         // Cleanup temp file if downloaded from cloud
         if (isCloudFile && filePath) {
             try {
@@ -475,7 +476,7 @@ async function generateEmbeddingsWithRetry(
         const batchNum = Math.floor(i / batchSize) + 1;
 
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/17efb887-18fc-4865-bc2f-4d26d39f8f0b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'processDocument.ts:generateEmbeddingsWithRetry',message:'Starting batch embedding',data:{batchNum,batchSize:batchChunks.length,totalChunks:chunks.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/17efb887-18fc-4865-bc2f-4d26d39f8f0b', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'processDocument.ts:generateEmbeddingsWithRetry', message: 'Starting batch embedding', data: { batchNum, batchSize: batchChunks.length, totalChunks: chunks.length }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'E' }) }).catch(() => { });
         // #endregion
 
         // 重试逻辑
@@ -485,17 +486,17 @@ async function generateEmbeddingsWithRetry(
                 break;  // 成功，跳出重试循环
             } catch (err: any) {
                 lastError = err;
-                const isNetworkError = err.message?.includes('ECONNRESET') || 
-                                       err.message?.includes('fetch failed') ||
-                                       err.message?.includes('Network error') ||
-                                       err.message?.includes('timeout');
-                
+                const isNetworkError = err.message?.includes('ECONNRESET') ||
+                    err.message?.includes('fetch failed') ||
+                    err.message?.includes('Network error') ||
+                    err.message?.includes('timeout');
+
                 // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/17efb887-18fc-4865-bc2f-4d26d39f8f0b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'processDocument.ts:generateEmbeddingsWithRetry',message:'Batch failed',data:{batchNum,attempt,maxRetries,errorMessage:err.message,isNetworkError},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
+                fetch('http://127.0.0.1:7242/ingest/17efb887-18fc-4865-bc2f-4d26d39f8f0b', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'processDocument.ts:generateEmbeddingsWithRetry', message: 'Batch failed', data: { batchNum, attempt, maxRetries, errorMessage: err.message, isNetworkError }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'E' }) }).catch(() => { });
                 // #endregion
-                
+
                 console.warn(`[Process] Embedding batch ${batchNum} failed (attempt ${attempt}/${maxRetries}):`, err.message);
-                
+
                 if (attempt < maxRetries) {
                     // 更长的指数退避等待：3s, 9s, 27s（对于网络错误额外增加等待时间）
                     const baseWait = isNetworkError ? 5000 : 3000;
@@ -514,11 +515,11 @@ async function generateEmbeddingsWithRetry(
         }
 
         allEmbeddings.push(...batchEmbeddings);
-        
+
         // 进度日志
         const progress = Math.min(100, Math.round(((i + batchSize) / chunks.length) * 100));
         console.log(`[Process] Embedding progress: ${progress}%`);
-        
+
         // 批次之间短暂等待，避免请求过于密集
         if (i + batchSize < chunks.length) {
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -546,7 +547,7 @@ export async function processPendingDocuments(config?: ProcessingConfig): Promis
     for (const doc of pendingDocs) {
         const docId = doc._id.toString();
         const result = await processDocument(docId, config);
-        
+
         if (result.success) {
             processed++;
             details.push({ id: docId, name: doc.original_name, success: true });
@@ -585,7 +586,7 @@ export async function retryFailedDocuments(
     for (const doc of failedDocs) {
         retried++;
         const result = await processDocument(doc._id.toString(), config);
-        
+
         if (result.success) {
             succeeded++;
         } else {

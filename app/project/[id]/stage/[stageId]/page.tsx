@@ -1082,8 +1082,9 @@ export default function StagePage() {
                     </div>
                     <div className="space-y-3 text-xs text-slate-600 dark:text-slate-200">
                       {combinedReferences.length === 0 ? (
-                        <div className="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-center text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                          暂无结果
+                        <div className="rounded-lg border border-dashed border-slate-200 px-3 py-6 text-center dark:border-slate-700">
+                          <p className="text-slate-500 dark:text-slate-400 mb-2">未找到相关内容</p>
+                          <p className="text-[10px] text-slate-400">请确保已在后台上传并配置知识库资料</p>
                         </div>
                       ) : (
                         combinedReferences.map((doc, idx) => {

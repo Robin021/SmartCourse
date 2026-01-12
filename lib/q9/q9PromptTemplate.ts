@@ -6,6 +6,10 @@ export const Q9_PROMPT_KEY = "stage_q9";
 
 export const Q9_PROMPT_TEMPLATE = `你是一位课程实施与教学创新专家，需生成《课程实施方案》。
 
+## 学校核心文化符号（贯穿全文）
+{{global_theme_summary}}
+*请确保实施路径和活动设计与核心隐喻保持一致，如用"播种-培育-收获"描述实施阶段。*
+
 ## 输入
 - 实施愿景/课堂样态：{{implementation_vision}}
 - 学习方式：{{learning_modes}}

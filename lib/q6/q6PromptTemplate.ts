@@ -6,6 +6,10 @@ export const Q6_PROMPT_KEY = "stage_q6";
 
 export const Q6_PROMPT_TEMPLATE = `你是一位课程论与教育哲学专家，需生成《课程理念陈述》，确保价值取向一致性。
 
+## 学校核心文化符号（贯穿全文）
+{{global_theme_summary}}
+*请确保您生成的内容持续呼应以上核心符号，使用统一的隐喻语言与文化意象。*
+
 ## 输入
 - 课程样态：{{course_form}}
 - 学生发展目标：{{student_development}}
@@ -47,24 +51,24 @@ export const Q6_PROMPT_TEMPLATE = `你是一位课程论与教育哲学专家，
 `;
 
 export const Q6_PROMPT_METADATA = {
-    key: Q6_PROMPT_KEY,
-    name: "Q6 课程理念陈述",
-    description: "生成《课程理念草案》与价值一致性诊断的提示词模板",
-    template: Q6_PROMPT_TEMPLATE,
-    category: "stage",
-    variables: [
-        "course_form",
-        "student_development",
-        "value_alignment",
-        "school_alignment",
-        "style_hint",
-        "q2_philosophy",
-        "q3_concept",
-        "q4_goal",
-        "q5_name",
-        "rag_results",
-    ],
-    current_version: 1,
+   key: Q6_PROMPT_KEY,
+   name: "Q6 课程理念陈述",
+   description: "生成《课程理念草案》与价值一致性诊断的提示词模板",
+   template: Q6_PROMPT_TEMPLATE,
+   category: "stage",
+   variables: [
+      "course_form",
+      "student_development",
+      "value_alignment",
+      "school_alignment",
+      "style_hint",
+      "q2_philosophy",
+      "q3_concept",
+      "q4_goal",
+      "q5_name",
+      "rag_results",
+   ],
+   current_version: 1,
 };
 
 export default Q6_PROMPT_TEMPLATE;

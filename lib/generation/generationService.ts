@@ -171,14 +171,24 @@ export class GenerationService {
             };
         }
 
-        // 1. Perform retrievals (optional)
-        const ragPromise = useRag
-            ? this.performRAGRetrieval(stage, userInput)
-            : Promise.resolve([]);
-        const webPromise = useWeb
-            ? this.performWebRetrieval(projectId, stage, userInput)
-            : Promise.resolve([]);
-        const [ragResults, webResults] = await Promise.all([ragPromise, webPromise]);
+        // 1. Perform retrievals based on data source priority
+        // Priority logic: 
+        // - Only RAG checked: use RAG only
+        // - Only Web checked: use Web only  
+        // - Both checked: prioritize RAG, use Web as fallback if RAG returns no results
+        let ragResults: SearchResult[] = [];
+        let webResults: WebSearchResult[] = [];
+
+        if (useRag) {
+            ragResults = await this.performRAGRetrieval(stage, userInput);
+        }
+
+        // Only perform web search if:
+        // 1. useWeb is enabled AND
+        // 2. Either useRag is disabled OR RAG returned no results
+        if (useWeb && (!useRag || ragResults.length === 0)) {
+            webResults = await this.performWebRetrieval(projectId, stage, userInput);
+        }
 
         // 2. Get prompt template for the stage
         const promptKey = `stage_${stage.toLowerCase()}`;
@@ -276,13 +286,20 @@ export class GenerationService {
             includeCitations = true,
         } = request;
 
-        const ragPromise = useRag
-            ? this.performRAGRetrieval(stage, userInput)
-            : Promise.resolve([]);
-        const webPromise = useWeb
-            ? this.performWebRetrieval(projectId, stage, userInput)
-            : Promise.resolve([]);
-        const [ragResults, webResults] = await Promise.all([ragPromise, webPromise]);
+        // Perform retrievals with RAG priority logic
+        // - Only RAG checked: use RAG only
+        // - Only Web checked: use Web only  
+        // - Both checked: prioritize RAG, use Web as fallback if RAG returns no results
+        let ragResults: SearchResult[] = [];
+        let webResults: WebSearchResult[] = [];
+
+        if (useRag) {
+            ragResults = await this.performRAGRetrieval(stage, userInput);
+        }
+
+        if (useWeb && (!useRag || ragResults.length === 0)) {
+            webResults = await this.performWebRetrieval(projectId, stage, userInput);
+        }
 
         const promptKey = `stage_${stage.toLowerCase()}`;
         const promptResult = await getPrompt({ key: promptKey });
@@ -602,6 +619,72 @@ export class GenerationService {
                     variables[`school_${key}`] = value;
                 }
             }
+        }
+
+        // =====================================================================
+        // Global Theme/Metaphor Injection
+        // Extract core cultural symbols from previous stages to maintain
+        // consistency across the entire document (e.g., "向阳花" metaphor).
+        // =====================================================================
+        const extractFromContext = (path: string): string => {
+            if (!previousStagesContext) return "";
+            const parts = path.split(".");
+            let current: any = previousStagesContext;
+            for (const part of parts) {
+                if (current && typeof current === "object" && part in current) {
+                    current = current[part];
+                } else {
+                    return "";
+                }
+            }
+            return typeof current === "string" ? current : "";
+        };
+
+        // Try to extract the course brand name (e.g., "向阳花课程")
+        const coreMetaphor =
+            extractFromContext("Q5.output.name") ||
+            extractFromContext("Q5.name") ||
+            extractFromContext("Q3.output.metaphor") ||
+            extractFromContext("Q3.metaphor") ||
+            schoolInfo?.metaphor ||
+            "";
+
+        // Try to extract the educational philosophy (e.g., "本真教育")
+        const corePhilosophy =
+            extractFromContext("Q2.output.philosophy") ||
+            extractFromContext("Q2.philosophy") ||
+            extractFromContext("Q2.output") ||
+            "";
+
+        // Try to extract the school concept (e.g., "回归教育本真，为孩子终生发展筑基")
+        const coreConcept =
+            extractFromContext("Q3.output.concept") ||
+            extractFromContext("Q3.concept") ||
+            extractFromContext("Q3.output") ||
+            "";
+
+        // Try to extract growth metaphor stages (e.g., "萌芽、蕴蕾、绽放")
+        const growthStages =
+            extractFromContext("Q7.output.growth_stages") ||
+            extractFromContext("Q7.growth_stages") ||
+            "";
+
+        // Inject global theme variables
+        if (coreMetaphor) variables["core_metaphor"] = coreMetaphor;
+        if (corePhilosophy) variables["core_philosophy"] = corePhilosophy;
+        if (coreConcept) variables["core_concept"] = coreConcept;
+        if (growthStages) variables["growth_stages"] = growthStages;
+
+        // Build a summary block for easy reference in prompts
+        const themeSummary = [
+            coreMetaphor && `课程品牌名称：${coreMetaphor}`,
+            corePhilosophy && `教育哲学：${corePhilosophy}`,
+            coreConcept && `办学理念：${coreConcept}`,
+            growthStages && `成长阶段隐喻：${growthStages}`,
+        ].filter(Boolean).join("\n");
+
+        if (themeSummary) {
+            variables["global_theme_summary"] = themeSummary;
         }
 
         return variables;

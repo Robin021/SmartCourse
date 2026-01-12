@@ -6,6 +6,10 @@ export const Q8_PROMPT_KEY = "stage_q8";
 
 export const Q8_PROMPT_TEMPLATE = `你是一位课程结构设计专家，需基于关键词、隐喻和顶层框架，生成《课程结构方案》。
 
+## 学校核心文化符号（贯穿全文）
+{{global_theme_summary}}
+*请确保课程板块命名与核心隐喻保持一致，体现学校文化特色。*
+
 ## 输入
 - 核心关键词：{{core_keywords}}
 - 核心隐喻：{{core_metaphor}}

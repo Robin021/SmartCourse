@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { ExportPreviewModal } from "./ExportPreviewModal";
 
 type ExportFormat = "text" | "docx" | "pdf" | "pptx";
@@ -244,9 +245,14 @@ export function ExportPanel({ projectId, stages }: ExportPanelProps) {
           <button
             onClick={handleExport}
             disabled={isExporting}
-            className="rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-cyan-500 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-cyan-500 disabled:opacity-60 transition"
           >
-            {isExporting ? "导出中..." : "导出"}
+            {isExporting ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                正在处理...
+              </>
+            ) : "导出"}
           </button>
         </div>
       </div>

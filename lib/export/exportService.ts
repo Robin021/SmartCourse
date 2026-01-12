@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, ImageRun } from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, ImageRun, AlignmentType, Header, Footer, PageNumber, NumberFormat, TableOfContents } from "docx";
 import connectDB from "@/lib/db";
 import Project from "@/models/Project";
 import StageConfig from "@/models/StageConfig";
@@ -7,6 +7,7 @@ import { stripInlineMarkdown, parseMarkdownTable } from "./markdownUtils";
 import { renderPdfBundle } from "./pdfUtils";
 import { renderPptBundle } from "./pptUtils";
 import { renderMermaidToBuffer, getPngDimensions } from "./mermaidUtils";
+import { fetchImageBuffer, getImageDimensions } from "./imageUtils";
 
 const EXPORT_GROUPS = [
     {
@@ -383,18 +384,52 @@ async function docxParagraphsFromMarkdown(content: string): Promise<Array<Paragr
             const altText = imageMatch[1];
             const imageUrl = imageMatch[2];
 
-            // TODO: Real implementation needs to fetch the image URL and convert to buffer
-            // For now, we add a placeholder text to indicate where the image should be
-            // In a real implementation:
-            // 1. Fetch image (axios or fs if local)
-            // 2. Convert to buffer
-            // 3. new ImageRun({ data: buffer, ... })
+            try {
+                const imgBuffer = await fetchImageBuffer(imageUrl);
+                if (imgBuffer) {
+                    const { width: naturalWidth, height: naturalHeight } = getImageDimensions(imgBuffer);
+                    const MAX_WIDTH = 550;
 
-            blocks.push(new Paragraph({
-                children: [
-                    new TextRun({ text: `[IMAGE: ${altText}] (${imageUrl}) - Image embedding not fully implemented yet, waiting for backend support.`, color: "0000FF", italics: true })
-                ]
-            }));
+                    let targetWidth = naturalWidth;
+                    let targetHeight = naturalHeight;
+
+                    if (naturalWidth > MAX_WIDTH) {
+                        targetWidth = MAX_WIDTH;
+                        targetHeight = Math.round((naturalHeight / naturalWidth) * MAX_WIDTH);
+                    }
+
+                    blocks.push(new Paragraph({
+                        alignment: AlignmentType.CENTER,
+                        children: [
+                            new ImageRun({
+                                data: imgBuffer,
+                                transformation: {
+                                    width: targetWidth,
+                                    height: targetHeight,
+                                },
+                                type: "png" // Fallback to png, most buffers work well with this in docx
+                            })
+                        ],
+                        spacing: { before: 200, after: 100 }
+                    }));
+
+                    if (altText) {
+                        blocks.push(new Paragraph({
+                            alignment: AlignmentType.CENTER,
+                            children: [new TextRun({ text: altText, size: 18, color: "666666", italics: true })],
+                            spacing: { after: 200 }
+                        }));
+                    }
+                } else {
+                    blocks.push(new Paragraph({
+                        children: [new TextRun({ text: `[图片拉取失败: ${altText || imageUrl}]`, color: "990000" })]
+                    }));
+                }
+            } catch (e) {
+                blocks.push(new Paragraph({
+                    children: [new TextRun({ text: `[图片嵌入错误: ${altText || imageUrl}]`, color: "990000" })]
+                }));
+            }
             continue;
         }
 
@@ -418,71 +453,278 @@ async function docxParagraphsFromMarkdown(content: string): Promise<Array<Paragr
 async function renderDocxBundle(projectName: string, sections: StageExportSection[]): Promise<Buffer> {
     const getSection = (id: string) => sections.find(s => s.stageId === id || s.stageId.startsWith(id + " "));
 
-    const children: Array<Paragraph | Table> = [
+    // 1. Cover Page - Professional School Report Style
+    const currentDate = new Date().toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    const coverChildren: Array<Paragraph | Table> = [
+        // Top spacing
+        new Paragraph({ text: "", spacing: { before: 1200 } }),
+
+        // Decorative top bar
         new Paragraph({
-            text: `${projectName} 课程设计导出`,
+            alignment: AlignmentType.CENTER,
+            children: [
+                new TextRun({ text: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", color: "2980b9", size: 28 })
+            ],
+            spacing: { after: 800 }
+        }),
+
+        // School name placeholder (extracted from Q1 if available, or generic)
+        new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+                new TextRun({
+                    text: projectName,
+                    size: 72,
+                    bold: true,
+                    color: "1a5276",
+                    font: "Microsoft YaHei"
+                })
+            ],
+            spacing: { after: 400 }
+        }),
+
+        // Main title
+        new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+                new TextRun({
+                    text: "课程顶层设计方案",
+                    size: 56,
+                    bold: true,
+                    color: "2c3e50",
+                    font: "Microsoft YaHei"
+                })
+            ],
+            spacing: { after: 200 }
+        }),
+
+        // Subtitle
+        new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+                new TextRun({
+                    text: "Curriculum Top-Level Design",
+                    size: 28,
+                    color: "7f8c8d",
+                    italics: true,
+                    font: "Arial"
+                })
+            ],
+            spacing: { after: 600 }
+        }),
+
+        // Decorative bottom bar
+        new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+                new TextRun({ text: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", color: "2980b9", size: 28 })
+            ],
+            spacing: { after: 1600 }
+        }),
+
+        // Date section
+        new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+                new TextRun({ text: "编制日期", size: 22, color: "95a5a6" })
+            ],
+            spacing: { after: 100 }
+        }),
+        new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+                new TextRun({ text: currentDate, size: 28, color: "34495e", bold: true })
+            ],
+            spacing: { after: 400 }
+        }),
+
+        // Footer note
+        new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+                new TextRun({ text: "本报告由 SmartCourse 智能课程设计系统辅助生成", size: 18, color: "bdc3c7" })
+            ],
+            spacing: { before: 800 }
+        })
+    ];
+
+    // 2. Table of Contents
+    // Build a manual TOC as preview, plus Word's auto-TOC for print
+    const tocEntries: Paragraph[] = [];
+    let tocIndex = 1;
+
+    for (const group of EXPORT_GROUPS) {
+        const groupStages = group.stages.map(sid => getSection(sid)).filter(Boolean);
+        if (groupStages.length === 0) continue;
+
+        // Add group title as TOC entry
+        tocEntries.push(new Paragraph({
+            children: [
+                new TextRun({ text: `${tocIndex}. ${group.title}`, size: 24, bold: true, color: "2c3e50" }),
+                new TextRun({ text: "  ......  ", size: 24, color: "bdc3c7" }),
+                new TextRun({ text: `页码待定`, size: 20, color: "95a5a6" })
+            ],
+            spacing: { before: 200, after: 100 }
+        }));
+
+        // Add stage entries as sub-items
+        for (const stageId of group.stages) {
+            const section = getSection(stageId);
+            if (!section) continue;
+            tocEntries.push(new Paragraph({
+                children: [
+                    new TextRun({ text: `    ${section.stageId} ${section.name}`, size: 22, color: "7f8c8d" })
+                ],
+                spacing: { after: 80 }
+            }));
+        }
+        tocIndex++;
+    }
+
+    const tocChildren: Array<Paragraph | Table | TableOfContents> = [
+        new Paragraph({
+            text: "目  录",
             heading: HeadingLevel.HEADING_1,
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 400, after: 200 },
+            pageBreakBefore: true
+        }),
+        new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+                new TextRun({ text: "CONTENTS", size: 24, color: "95a5a6", italics: true })
+            ],
+            spacing: { after: 600 }
+        }),
+        // Manual TOC preview
+        ...tocEntries,
+        // Hint for Word users
+        new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+                new TextRun({
+                    text: "（提示：在 Microsoft Word 中按 Ctrl+A 全选后按 F9 可更新页码）",
+                    size: 18,
+                    color: "bdc3c7",
+                    italics: true
+                })
+            ],
+            spacing: { before: 400, after: 200 }
+        }),
+        // Word's auto-update TOC field (hidden by default, becomes visible after F9)
+        new TableOfContents("目录", {
+            hyperlink: true,
+            headingStyleRange: "1-3",
         }),
     ];
 
-    for (const group of EXPORT_GROUPS) {
-        // Group Title
-        const groupStages = group.stages.map(sid => getSection(sid)).filter(Boolean);
+    // 3. Main Content
+    const contentChildren: Array<Paragraph | Table> = [];
 
-        // Always show group title if requested, or only if stages exist? 
-        // User requested strict structure, so let's show title even if empty? 
-        // Better: show title if at least one stage exists or just show it anyway as placeholder.
-        children.push(new Paragraph({
+    for (const group of EXPORT_GROUPS) {
+        const groupStages = group.stages.map(sid => getSection(sid)).filter(Boolean);
+        if (groupStages.length === 0) continue;
+
+        contentChildren.push(new Paragraph({
             text: group.title,
             heading: HeadingLevel.HEADING_1,
-            pageBreakBefore: true, // Force start on new page
-            spacing: { before: 400, after: 400 }, // Increase spacing for visual emphasis
-            alignment: "center", // Center the part title
+            pageBreakBefore: true,
+            spacing: { before: 400, after: 400 },
+            alignment: AlignmentType.CENTER,
         }));
 
         for (const stageId of group.stages) {
             const section = getSection(stageId);
             if (!section) continue;
 
-            children.push(new Paragraph({
+            contentChildren.push(new Paragraph({
                 text: `${section.stageId} ${section.name}`,
                 heading: HeadingLevel.HEADING_2,
+                spacing: { before: 300, after: 200 }
             }));
 
             if (section.description) {
-                children.push(new Paragraph({
-                    children: [new TextRun({ text: section.description, italics: true, color: "6b7280" })],
+                contentChildren.push(new Paragraph({
+                    children: [new TextRun({ text: section.description, italics: true, color: "666666" })],
+                    spacing: { after: 150 }
                 }));
             }
 
-            if (section.status) {
-                children.push(new Paragraph({
+            // Stats and Score (Optional styling)
+            if (section.status || section.score !== undefined) {
+                contentChildren.push(new Paragraph({
                     children: [
-                        new TextRun({ text: "状态: ", bold: true }),
-                        new TextRun({ text: section.status }),
-                    ]
-                }));
-            }
-            if (section.score !== undefined) {
-                children.push(new Paragraph({
-                    children: [
-                        new TextRun({ text: "评分: ", bold: true }),
-                        new TextRun({ text: `${section.score}` }),
-                    ]
+                        ...(section.status ? [new TextRun({ text: "状态: ", bold: true, size: 20 }), new TextRun({ text: `${section.status}    `, size: 20 })] : []),
+                        ...(section.score !== undefined ? [new TextRun({ text: "评分: ", bold: true, size: 20 }), new TextRun({ text: `${section.score}`, size: 20, color: section.score > 80 ? "27ae60" : "c0392b" })] : []),
+                    ],
+                    spacing: { after: 200 }
                 }));
             }
 
-            // Render content
             const contentParagraphs = await docxParagraphsFromMarkdown(section.content);
-            children.push(...contentParagraphs);
-
+            contentChildren.push(...contentParagraphs);
         }
     }
 
     const doc = new Document({
+        styles: {
+            default: {
+                heading1: {
+                    run: { size: 48, bold: true, color: "2980b9", font: "Microsoft YaHei" },
+                    paragraph: { spacing: { before: 400, after: 400 } }
+                },
+                heading2: {
+                    run: { size: 36, bold: true, color: "34495e", font: "Microsoft YaHei" },
+                    paragraph: { spacing: { before: 300, after: 200 } }
+                }
+            }
+        },
         sections: [
             {
-                children: children,
+                properties: {
+                    page: {
+                        pageNumbers: {
+                            start: 1,
+                            formatType: NumberFormat.DECIMAL
+                        }
+                    }
+                },
+                headers: {
+                    default: new Header({
+                        children: [
+                            new Paragraph({
+                                children: [new TextRun({ text: `${projectName} - 课程设计方案`, color: "95a5a6", size: 18 })],
+                                alignment: AlignmentType.RIGHT
+                            })
+                        ]
+                    })
+                },
+                footers: {
+                    default: new Footer({
+                        children: [
+                            new Paragraph({
+                                alignment: AlignmentType.CENTER,
+                                children: [
+                                    new TextRun({
+                                        children: ["第 ", PageNumber.CURRENT, " 页 / 共 ", PageNumber.TOTAL_PAGES, " 页"],
+                                        size: 18,
+                                        color: "95a5a6"
+                                    }),
+                                ],
+                            }),
+                        ],
+                    }),
+                },
+                children: [
+                    ...coverChildren,
+                    ...tocChildren,
+                    ...contentChildren
+                ],
             },
         ],
     });

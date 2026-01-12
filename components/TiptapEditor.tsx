@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
+import Mermaid from "@/components/ui/Mermaid";
 
 interface Selection {
   text: string;
@@ -257,8 +258,8 @@ export function TiptapEditor({
         visible: true,
         label: decode(
           target.dataset.label ||
-            ref?.metadata?.original_name ||
-            `引用 ${refIdx}`
+          ref?.metadata?.original_name ||
+          `引用 ${refIdx}`
         ),
         content: ref?.content?.trim() || decode(target.dataset.snippet || ""),
         source: ref?.metadata?.source || ref?.source || "知识库",
@@ -298,19 +299,17 @@ export function TiptapEditor({
         <div className="flex gap-1 text-xs">
           <button
             onClick={() => setMode("preview")}
-            className={`px-2 py-1 rounded ${
-              mode === "preview"
-                ? "bg-primary/10 text-primary"
-                : "hover:bg-muted"
-            }`}
+            className={`px-2 py-1 rounded ${mode === "preview"
+              ? "bg-primary/10 text-primary"
+              : "hover:bg-muted"
+              }`}
           >
             预览
           </button>
           <button
             onClick={() => setMode("edit")}
-            className={`px-2 py-1 rounded ${
-              mode === "edit" ? "bg-primary/10 text-primary" : "hover:bg-muted"
-            }`}
+            className={`px-2 py-1 rounded ${mode === "edit" ? "bg-primary/10 text-primary" : "hover:bg-muted"
+              }`}
           >
             编辑
           </button>
@@ -366,6 +365,22 @@ export function TiptapEditor({
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}
             skipHtml={false}
+            components={{
+              code({ node, inline, className, children, ...props }: any) {
+                const match = /language-(\w+)/.exec(className || "");
+                const isMermaid = match && match[1] === "mermaid";
+
+                if (!inline && isMermaid) {
+                  return <Mermaid chart={String(children).replace(/\n$/, "")} />;
+                }
+
+                return (
+                  <code className={className} {...props}>
+                    {children}
+                  </code>
+                );
+              }
+            }}
           >
             {citationEnhancedContent ||
               "这里展示生成的陈述内容。左侧表单不会自动出现在此处，请点击上方「AI 生成陈述」生成，或切换到「编辑」手动撰写。"}
