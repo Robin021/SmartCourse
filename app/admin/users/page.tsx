@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, Search, Edit, Trash2, Loader2 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
 
 interface User {
     _id: string;
@@ -18,8 +17,6 @@ export default function UsersPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
-    const router = useRouter();
-    const searchParams = useSearchParams();
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -132,8 +129,8 @@ export default function UsersPage() {
                                         <td className="px-6 py-4">
                                             <span
                                                 className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${user.status === "ACTIVE"
-                                                        ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                                                        : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                                                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                                    : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
                                                     }`}
                                             >
                                                 {user.status}
