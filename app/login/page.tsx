@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { GraduationCap, School, BookOpen, Building2 } from "lucide-react";
+import { GraduationCap, School, BookOpen, Building2, ShieldCheck } from "lucide-react";
 
 const ROLES = [
     { id: "STUDENT", label: "Student", icon: BookOpen },
     { id: "TEACHER", label: "Teacher", icon: GraduationCap },
     { id: "SCHOOL_ADMIN", label: "School Admin", icon: School },
     { id: "BUREAU_ADMIN", label: "Bureau Admin", icon: Building2 },
+    { id: "SYSTEM_ADMIN", label: "System Admin", icon: ShieldCheck },
 ];
 
 export default function LoginPage() {
@@ -67,7 +68,7 @@ export default function LoginPage() {
                 <div className="rounded-2xl border border-slate-200 bg-white/90 text-card-foreground shadow-xl backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
                     <div className="p-6 space-y-6">
                         {/* Role Tabs */}
-                        <div className="grid grid-cols-4 gap-2 mb-6 p-1 bg-slate-100 rounded-lg dark:bg-slate-800">
+                        <div className="grid grid-cols-5 gap-2 mb-6 p-1 bg-slate-100 rounded-lg dark:bg-slate-800">
                             {ROLES.map((r) => {
                                 const Icon = r.icon;
                                 const isSelected = role === r.id;
@@ -147,9 +148,6 @@ export default function LoginPage() {
                     </div>
                 </div>
 
-                <div className="text-center text-xs text-slate-400">
-                    Are you a System Administrator? Please log in via the console.
-                </div>
             </div>
         </div>
     );
